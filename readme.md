@@ -23,7 +23,7 @@ Disk: 47.1 / 112.6 GB
 
 | Dataset          | Disk Size | URL | note |
 | ---------------- | --------- | --- | ---- |
-| StanfordIMDb     | 84MB      | [link](https://huggingface.co/datasets/stanfordnlp/imdb) | sentiment |
+| Stanford IMDb    | 84MB      | [link](https://huggingface.co/datasets/stanfordnlp/imdb) | sentiment |
 | RealToxicityPrompts | 68MB   | [link](https://huggingface.co/datasets/allenai/real-toxicity-prompts) | toxicity |
 | OpenWebText      |           | [link](https://github.com/jcpeterson/openwebtext)| Mods next-token prob, Section 4.1.1|
 | ConceptNet       | 6MB       | [link](https://github.com/facebookresearch/LAMA?utm_source=catalyzex.com) | general knowledge reserving|
@@ -34,6 +34,14 @@ Disk: 47.1 / 112.6 GB
 # reducing toxicity (4.3)
 Fluency, Relevance, Toxicity
 # controlling sentiment (4.4)
+- goal: to continue each review but with the opposite sentiment
+- dataset: `Stanford IMDb`
+- steering: the probability of changing sentiment classification
+  - with sentiment classifier: `SiEBERT`
+- quality controls:
+  - (dis)fluency: with conditional perplexity using logprobs
+  - relevance: cosine similarity (with `all-MiniLM-L6-v2`) between the prompt and continuation sentence embeddings
+- sampling hyperparameters: `freq_penalty= 0.0, top_p=1.0`
 # preserving general knowledge (4.5)
 Fluency, Relevance, prompt eng., random activation, partial 
 
