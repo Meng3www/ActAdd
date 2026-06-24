@@ -8,9 +8,9 @@ Disk: 47.1 / 112.6 GB
 
 | Model            | Disk Size | URL | note |
 | ---------------- | --------- | --- | ---- |
-| Llama-1-13B      | 26GB      | [link](https://huggingface.co/huggyllama/llama-13b) ||
+| Llama-1-13B      | 26GB      | [link](https://huggingface.co/huggyllama/llama-13b) | not focused in the paper |
 | GPT-J-6B         | 25GB      | [link](https://huggingface.co/EleutherAI/gpt-j-6b) ||
-| LLaMA-3-8B       | 16GB      | [link](https://huggingface.co/meta-llama/Meta-Llama-3-8B)||
+| LLaMA-3-8B       | 16GB      | [link](https://huggingface.co/meta-llama/Meta-Llama-3-8B)| available on cluster |
 | OPT-6.7B         | 14GB      | [link](https://huggingface.co/facebook/opt-6.7b) ||
 | GPT-2-XL         | 7GB       | [link](https://huggingface.co/openai-community/gpt2-xl)||
 | SiEBERT          | 1.5GB     | [link](https://huggingface.co/siebert/sentiment-roberta-large-english)| sentiment classifier |
@@ -20,8 +20,8 @@ Disk: 47.1 / 112.6 GB
 | laiyer/unbiased-toxic-roberta-onnx | 628MB | [link](https://huggingface.co/protectai/unbiased-toxic-roberta-onnx) | alternative in the notebook |
 | Detoxify         | (2021)    | [link](https://github.com/unitaryai/detoxify) | toxicity score replacement |
 | roberta_toxicity_classifier | 500MB (2024) | [link](https://huggingface.co/s-nlp/roberta_toxicity_classifier) | toxicity score replacement |
-| qwen 2.5         | various   || conditional perplexity |
-| Gemini 2.5 Flash | API | [link](https://discuss.ai.google.dev/t/get-logprobs-at-output-token-level/54418), [link](https://discuss.ai.google.dev/t/logprobs-is-not-enabled-for-gemini-models/107989/17) | **conditional perplexity? unstable/disabled** |
+| Qwen2.5-7B       | 16GB      | [link](https://huggingface.co/Qwen/Qwen2.5-7B) | conditional perplexity, available on cluster |
+| ~~Gemini 2.5 Flash~~ | API | [link](https://discuss.ai.google.dev/t/get-logprobs-at-output-token-level/54418), [link](https://discuss.ai.google.dev/t/logprobs-is-not-enabled-for-gemini-models/107989/17) | **conditional perplexity? unstable/disabled** |
 
 | Dataset          | Disk Size | URL | note |
 | ---------------- | --------- | --- | ---- |
