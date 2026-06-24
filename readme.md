@@ -47,6 +47,15 @@ tried `!pip install torch==2.11` after all other packages are installed: error f
 transformer-lens 3.4.0 requires torchvision<0.23,>=0.22             
 Gemini suggests to downgrade the transformers library               
 Claude `sentence-transformers==2.7.0` and this stops the errors                 
+- on `logprobs`: in the original code, `openai.Completion.create` is called with `logprobs=0`, only returning a single value per token position. Google API has stopped providing logprob access. Most of the models on `OpenRouter` are either not free, or not providing logprobs as part of the completion. 
+- the cluster has had some of the models downloaded, it also supports running notebooks
+- to transfer the project onto the cluster with the original package versions:
+```
+sentence_transformers==2.7.0
+torch==2.2.0
+transformers==4.38.0
+transformer_lens==1.17.0
+```
 
 on `transformer_lens==3.4.0`, `gpt2-large`
 https://developers.openai.com/api/reference/resources/completions/methods/create
