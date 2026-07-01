@@ -24,7 +24,9 @@ class Steer:
         self.steered_all = list()
 
     def steering_model(self, model_path):
-        model = TransformerBridge.boot_transformers(model_path, device=device)
+        model = TransformerBridge.boot_transformers(model_path, 
+                                                    device=device,
+                                                    dtype=torch.float16)
         model.enable_compatibility_mode()
         print(f"steering model loaded from {model_path}")
         return model
