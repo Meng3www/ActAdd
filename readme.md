@@ -93,6 +93,11 @@ Fluency, Relevance, Toxicity
   - (dis)fluency: with conditional perplexity using logprobs
   - relevance: cosine similarity (with `all-MiniLM-L6-v2`) between the prompt and continuation sentence embeddings
 - sampling hyperparameters: `freq_penalty= 0.0, top_p=1.0`
+## hyperparameter tuning 
+- for neg2pos (love-hate) with max_coeff=20, sample_size=10
+  - LLaMA-3-8B
+  
+
 # preserving general knowledge (4.5)
 Fluency, Relevance, prompt eng., random activation, partial 
 
