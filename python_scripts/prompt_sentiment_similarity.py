@@ -2,6 +2,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
+import gc
 import json
 import torch
 import transformer_lens.utilities as utils
@@ -25,9 +26,14 @@ class Steer:
 
     def steering_model(self, model_path):
         model = TransformerBridge.boot_transformers(model_path, 
-                                                    device=device,
+                                                    device="cpu",
                                                     dtype=torch.float16)
+        print(f"steering model loaded to cpu")
         model.enable_compatibility_mode()
+        model = model.to(torch.float16)
+        gc.collect()
+        if device == "cuda":
+            model = model.to(device) 
         print(f"steering model loaded from {model_path}")
         return model
 
