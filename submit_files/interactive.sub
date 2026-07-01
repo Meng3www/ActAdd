@@ -7,9 +7,9 @@ initialdir              = /nethome/fmeng
 output                  = /scratch/fmeng/ActAdd/logs/run.sh.$(ClusterId).$(Year)_$(Month)_$(Day)_$(SUBMIT_TIME).out
 error                   = /scratch/fmeng/ActAdd/logs/run.sh.$(ClusterId).$(Year)_$(Month)_$(Day)_$(SUBMIT_TIME).err
 log                     = /scratch/fmeng/ActAdd/logs/run.sh.$(ClusterId).$(Year)_$(Month)_$(Day)_$(SUBMIT_TIME).log
-request_CPUs            = 2
-request_memory          = 4G
-request_GPUs            = 0
+request_CPUs            = 1
+request_memory          = 36G
+request_GPUs            = 1
 +MaxWallTime            = 43200
 
 queue
