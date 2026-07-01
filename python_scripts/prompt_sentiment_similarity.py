@@ -2,6 +2,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
+import ctypes, ctypes.util
 import gc
 import json
 import torch
@@ -16,6 +17,10 @@ path_opt = "/scratch/common_models/opt-6.7b/"
 device = utils.get_device()
 print("device:", device)
 
+# https://stackoverflow.com/questions/51938963/python-memory-not-being-released-on-linux
+def malloc_trim():
+    ctypes.CDLL(ctypes.util.find_library('c')).malloc_trim(0) 
+
 
 class Steer:
     def __init__(self, steer_path, sentiment_path, relevance_path):
@@ -25,6 +30,7 @@ class Steer:
         self.steered_all = list()
 
     def steering_model(self, model_path):
+        # https://github.com/TransformerLensOrg/TransformerLens/issues/104
         model = TransformerBridge.boot_transformers(model_path, 
                                                     device="cpu",
                                                     dtype=torch.float16)
@@ -32,6 +38,7 @@ class Steer:
         model.enable_compatibility_mode()
         model = model.to(torch.float16)
         gc.collect()
+        malloc_trim()
         if device == "cuda":
             model = model.to(device) 
         print(f"steering model loaded from {model_path}")
