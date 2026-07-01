@@ -15,6 +15,7 @@ from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
 # import ctypes, ctypes.util
 import json
+import time
 import torch
 import transformer_lens.utilities as utils
 
@@ -69,7 +70,8 @@ def steer_prompts(prompt_add, prompt_sub, prompts, steer_model, sentiment_model,
         except:
             print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
 
-    for coeff in range(1, max_coeff):
+    for coeff in range(1, max_coeff+1):
+        print(f"layer={layer}, coeff={coeff}")
         act_diff = act_diff * coeff     
         # generate with the steering vector
         editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
@@ -106,6 +108,8 @@ if __name__ == '__main__':
     print(f"number of layers: {n_layers}")
     # init grid
     grid = torch.zeros(n_layers, max_coeff)
+    print(f"grid.size(): {grid.size()}")
+    start = time.time()
     for layer in range(n_layers):
         grid = steer_prompts(prompt_add=" love", 
                             prompt_sub=" hate", 
@@ -117,5 +121,6 @@ if __name__ == '__main__':
                             sampling_kwargs=sampling_kwargs, 
                             grid=grid,
                             max_coeff=max_coeff)
-        print(grid)
-        break
+        print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
+    print(grid)
+    print(f"max: {grid.max}, min: {grid.min}")
