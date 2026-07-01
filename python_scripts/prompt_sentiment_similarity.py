@@ -32,15 +32,17 @@ class Steer:
     def steering_model(self, model_path):
         # https://github.com/TransformerLensOrg/TransformerLens/issues/104
         model = TransformerBridge.boot_transformers(model_path, 
-                                                    device="cpu",
+                                                    device=device,
                                                     dtype=torch.float16)
-        print(f"steering model loaded to cpu")
+        print(f"steering model loaded to {device}")
         model.enable_compatibility_mode()
-        model = model.to(torch.float16)
-        gc.collect()
-        malloc_trim()
-        if device == "cuda":
-            model = model.to(device) 
+        # model = model.to(torch.float16)
+        # gc.collect()
+        # malloc_trim()
+        # if device == "cuda":
+        #     model = model.to(device) 
+        #     gc.collect()
+        #     malloc_trim()
         print(f"steering model loaded from {model_path}")
         return model
 
