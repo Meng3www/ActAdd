@@ -91,7 +91,7 @@ https://developers.openai.com/api/reference/resources/completions/methods/create
 ## hyperparameter tuning 
 - for neg2pos (love-hate) with max_coeff=20, sample_size=10
   - LLaMA-3-8B: 197.31 mins               
-![number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B](\graphs\neg2pos_llama.png "number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B")
+![number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B](graphs/neg2pos_llama.png "number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B")
 <details>
 
 <summary>the original matrix</summary>
