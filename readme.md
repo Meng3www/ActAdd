@@ -82,15 +82,70 @@ https://developers.openai.com/api/reference/resources/completions/methods/create
 - goal: to continue each review but with the opposite sentiment
 - models: `OPT`, `LLaMA-3`
 - dataset: `Stanford IMDb`
-- steering: the probability of changing sentiment classification
-  - with sentiment classifier: `SiEBERT`
+  - all data points (train and test) are used
+  - separate to two groups according to sentiment (negative-0, positive-1)
+  - tokenised and then truncated to 32 tokens, return the tokens to strings to be used as the original prompts
+  - for make batch processing possible, each model requires its own set of pre-processed prompts (imdb_[neg/pos]_[llama/opt].json) 
+- steering: the probability of changing sentiment classification with *one* prompt_add and *one* prompt_sub 
+  - success with sentiment classifier: `SiEBERT`, only the continuation (excluding the prompt) is evaluated
 - quality controls:
-  - (dis)fluency: with conditional perplexity using logprobs
   - relevance: cosine similarity (with `all-MiniLM-L6-v2`) between the prompt and continuation sentence embeddings
+  - (dis)fluency: with conditional perplexity using logprobs
 - sampling hyperparameters: `freq_penalty= 0.0, top_p=1.0`
+- the notebook provided by the author does not use batch processing as the length of the prompt is used for the evaluation of each generation to exclude the original prompt
+
+## OOM errors on the cluster
+Since colab does not even support gpt-large, notebooks are migrated to run on cluster. Due to unknown issue with notebook with a submitted (interactive) job, most of code designs are finished over jones, which does not require jon submitting. However GPUs on jones are quite limited and larger models such as Llama-3 cannot be managed. Some of the works are done by running python scripts on interactive nodes.          
+Some OOM errors when loading the 16 GB Llama model are found with 
+- loaded on GPU of 32GB directly with `dtype` set to `torch.float16`
+- loaded on CPU of up to 95GB (converted to `torch.float16` and then move to GPU)
+- loaded on GPU of 81GB   
+
+According to Gemini, and this is very convincing: `LLaMA-3` is trained in half-precision but `TransformerLens` casts it to full-precision for example in `process_weights state_dict[k] = v.float()` and therefore requires 32GB in stead. However it does not make sense when the model is loaded to large CPU memory and still fail. So the detailed reason behind it is not further investigated.            
+**The fix**: commenting out `model.enable_compatibility_mode()` after model is loaded with TransformerLens.             
+<details>
+
+<summary>what is `model.enable_compatibility_mode()` doing here</summary>
+As the authors use `HookedTransformer.from_pretrained`, which is 'being phased out in favor of `TransformerBridge.boot_transformers`' [@jlarson4 on GitHub](https://github.com/TransformerLensOrg/TransformerLens/issues/754), during a sanity check it is suggested by Gemini 'for legacy HookedTransformer-equivalent numerics' [Loading and Running Models](https://transformerlensorg.github.io/TransformerLens/generated/demos/Main_Demo.html#Loading-and-Running-Models). Now it is dropped so that the model could run on the server.          
+
+</details>
+
+OOMs are curious creatures since on jones where 16GB Llama is not possible, 16GB Qwen2.5 for logprobs can be loaded ok.                
+
+## remove model
+Free API possibility to reduce the loading of another mode for logprobs:
+- Free tier Google AI has removed logprobs in its output according to questions in the forum.
+- Free tier OpenRouter models do not necessaryly provide logprobs. There is not control on which model the call ends up with, no consistency. 
+
+The only option is to (down)load a model fully to work instead.               
+Since it is unlikely that both Qwen2.5 and the steering models can be loaded at the same time to be used in the pipeline, the plan is to 
+- load the steering model, 
+- remove the model after steering all examples, then 
+- load Qwen. 
+
+these are tried on the notebook and/or with the python script but none has worked:
+- `del model`: the reference is removed but the space is not released back to the memory
+- `del model`+`gc.collect()`: according to [this](https://stackoverflow.com/questions/51938963/python-memory-not-being-released-on-linux) it could be a linux issue. One answer in the post has saved some projects according to the comments, and it is
+- `del model`+`ctypes.CDLL(ctypes.util.find_library('c')).malloc_trim(0)`, but unfortunately it does not work either
+
+So the solution would be to divide the pipeline into two scripts:
+- load the steering model to steer, sentiment model to do sentiment analysis, and embedding model for cosine similarity, save the result in file
+- load the file form the previous step and Qwen for logprob calculation in a different script.
+
 ## hyperparameter tuning 
+not detailed in the paper on how this is done, so brute force is used here for simplicity:              
+for each layer, the same 10 prompts are chosen to be steered towards the opposite sentiment with coefficient from 1 to max_coeff              
+the following matrices and heatmaps show the count where the sentiment classifier classifies the continuation to be possitive (1) out of the ten samples.               
+for neg2pos, 1 should be counted. As for pos2neg, the count of 0 should be counted as the number of success           
+as there are multiple combinations that lead to max count of success, further experiments are done
+  - check the average score
+  - qualitive comparison
+
+if possible, use the best result combination from earlier layers           
+
 - for neg2pos (love-hate) with max_coeff=20, sample_size=10
-  - LLaMA-3-8B: 197.31 mins               
+  - LLaMA-3-8B: 197.31 mins  
+
 ![number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B](graphs/neg2pos_llama.png "number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B")
 <details>
 
@@ -133,8 +188,11 @@ https://developers.openai.com/api/reference/resources/completions/methods/create
 </details>
 
 max: 7.0 at index tensor([10,  6]) *l=10, coeff=7*, min: 1.0 at tensor([0, 4])
+
 question: the paper did not specify how they did hyperparameter tuning. is eyeball-ing the result appropriate? (esp. with the smaller value)                
-  - OPT-6.7B: 126.18 mins 
+  - OPT-6.7B: 126.18 mins   
+
+![number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B](graphs/neg2pos_opt.png "number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B")
 
 <details>
 
@@ -180,10 +238,13 @@ max: 10.0 at index tensor([4, 4]), min: 0.0 at tensor([1, 5])
 
 ## TODO
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
+- check if different lengths in the prompts destroy the batch pipeline
+  - if needed, re-do the data using opt tokeniser
+- baseline with the 10 prompts
 - check qualitively to be listed
   - positive example
   - negative example
-- heatmap on hype/senti/toxi/baseline
+- heatmap on hype/senti/toxi
 - plot for main findings
 
 # reducing toxicity (4.3)
@@ -197,3 +258,4 @@ Fluency, Relevance, Toxicity
 Fluency, Relevance, prompt eng., random activation, partial 
 
 # issues
+
