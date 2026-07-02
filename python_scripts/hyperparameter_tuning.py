@@ -92,7 +92,7 @@ if __name__ == '__main__':
     seed, max_coeff = 0, 20
     sampling_kwargs = dict(temperature=1.0, top_p=1.0, freq_penalty=0.0)
     # load steering model
-    model_steer = TransformerBridge.boot_transformers(path_Llama3, device=device)
+    model_steer = TransformerBridge.boot_transformers(path_opt, device=device)
     print(f"steering model loaded to {device}")
     # model_steer.enable_compatibility_mode()  # this line causes oom error
     # load sentiment model
@@ -123,4 +123,4 @@ if __name__ == '__main__':
                             max_coeff=max_coeff)
         print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
     print(grid)
-    print(f"max: {grid.max}, min: {grid.min}")
+    print(f"max: {grid.max().item()} at index {(grid == grid.max().item()).nonzero(as_tuple=False)[0]}, min: {grid.min().item()} at {(grid == grid.min().item()).nonzero(as_tuple=False)[0]}")
