@@ -18,7 +18,7 @@ device = utils.get_device()
 print("device:", device)
 
 
-def quantitative(steer_path, file_path):
+def quantitative(model_steer, model_sentiment, file_path):
     """
     steer_path: path to the steering model
     file_path: the matching path for the file that contains the prompts
@@ -28,13 +28,6 @@ def quantitative(steer_path, file_path):
             count the number of success
     print the grid, the layer, coeff of the first max count
     """
-    # load steering model
-    model_steer = TransformerBridge.boot_transformers(steer_path, device=device)
-    print(f"steering model loaded to {device} from {steer_path}")
-    # model_steer.enable_compatibility_mode()  # this line causes oom error
-    # load sentiment model
-    model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
-    print("sentiment model loaded")
     # load data
     prompts = load_data(file_path, num_samples)
     # check the number of layers
@@ -45,8 +38,8 @@ def quantitative(steer_path, file_path):
     print(f"grid.size(): {grid.size()}")
     start = time.time()
     for layer in range(n_layers):
-        grid = ht_count(prompt_add=" love", 
-                        prompt_sub=" hate", 
+        grid = ht_count(prompt_add=" hate", 
+                        prompt_sub=" love", 
                         prompts=prompts, 
                         steer_model=model_steer, 
                         sentiment_model=model_sentiment, 
@@ -59,16 +52,10 @@ def quantitative(steer_path, file_path):
     print(grid)
     print(f"max: {grid.max().item()} at index {(grid == grid.max().item()).nonzero(as_tuple=False)[0]}, min: {grid.min().item()} at {(grid == grid.min().item()).nonzero(as_tuple=False)[0]}")
 
-def baseline(model_path, data_file_path, out_file):
-    # load steering model
-    model_generate = TransformerBridge.boot_transformers(model_path, device=device)
-    print(f"baseline generating model loaded to {device} from {model_path}")
-    # load sentiment model
-    model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
-    print("sentiment model loaded")
+def baseline(generate_model, sentiment_model, data_file_path, out_file):
     # load data
     prompts = load_data(data_file_path, num_samples)
-    base_df = pipeline_base_batch(prompts, model_generate, model_sentiment, seed, sampling_kwargs, True, None)
+    base_df = pipeline_base_batch(prompts, generate_model, sentiment_model, seed, sampling_kwargs, True, None)
     means = base_df["sentiment_score"].groupby(base_df["continuation_label"]).mean()
     print(f"{sum(base_df["continuation_label"])} positive, means: {means}")
     df_dict = base_df.to_dict(orient="records")
@@ -76,6 +63,20 @@ def baseline(model_path, data_file_path, out_file):
 
 
 if __name__ == '__main__':
-    # quantitative(path_Llama3, "imdb_neg_llama.json")
-    baseline(path_Llama3, "imdb_neg_llama.json", "baseline_llama_hpt")
+    model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
+    # model_steer.enable_compatibility_mode()  # this line causes oom error
+    print(f"baseline generating model loaded to {device}")
+    # load sentiment model
+    model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
+    print("sentiment model loaded")
+    baseline(model_generate, model_sentiment, "imdb_pos_llama.json", "baseline_pos_llama_hpt")
+    quantitative(model_generate, model_sentiment, "imdb_pos_llama.json")
+
+    # model_generate = TransformerBridge.boot_transformers(path_opt, device=device)
+    # print(f"baseline generating model loaded to {device}")
+    # # load sentiment model
+    # model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
+    # print("sentiment model loaded")
+    # baseline(model_generate, model_sentiment, "imdb_neg_opt.json", "baseline_neg_opt_hpt")
+    # baseline(model_generate, model_sentiment, "imdb_pos_opt.json", "baseline_pos_opt_hpt")    
 

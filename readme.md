@@ -192,8 +192,8 @@ max: 7.0 at index tensor([10, 6]) *l=10, coeff=7*, min: 1.0 at tensor([0, 4])
 
 baseline: 5 positive, mean score
 ```
-0    0.997671 
-1    0.997896 
+0    0.998847
+1    0.992275
 ```
 
 question: the paper did not specify how they did hyperparameter tuning. is eyeball-ing the result appropriate? (esp. with the smaller value)                
