@@ -48,13 +48,18 @@ def load_data(file_name, slice=0):
         print(f"{slice} data point(s) loaded from {working_dir}{file_name}")        
         return r_data[:slice]
      
-def save2file(data2save, file_name):
+def save2file(data2save, file_name, file_type="json"):
     """
-    TODO: save file into other formats than json
+    save file into json format if not specified.
+    if data2save is a panda dataframe, then `file_type="parquet"`
     """
-    with open(f"{working_dir}{file_name}.json", "w") as f:
-        json.dump(data2save, f, skipkeys=True)
-    print(f"file saved as {working_dir}{file_name}.json")
+    if file_type == "json":
+        with open(f"{working_dir}{file_name}.json", "w") as f:
+            json.dump(data2save, f, skipkeys=True)
+        print(f"file saved as {working_dir}{file_name}.json")
+    elif file_type == "parquet":
+        data2save.to_parquet(f"{working_dir}{file_name}.gzip", compression="gzip")
+        print(f"file saved as {working_dir}{file_name}.gzip")
 
 def pipeline_steer_single(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, relevance_model, layer, coeff, seed, sampling_kwargs, file_name):
     """
