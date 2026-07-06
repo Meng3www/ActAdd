@@ -126,7 +126,8 @@ Since it is unlikely that both Qwen2.5 and the steering models can be loaded at 
 these are tried on the notebook and/or with the python script but none has worked:
 - `del model`: the reference is removed but the space is not released back to the memory
 - `del model`+`gc.collect()`: according to [this](https://stackoverflow.com/questions/51938963/python-memory-not-being-released-on-linux) it could be a linux issue. One answer in the post has saved some projects according to the comments, and it is
-- `del model`+`ctypes.CDLL(ctypes.util.find_library('c')).malloc_trim(0)`, but unfortunately it does not work either
+- `del model`+`ctypes.CDLL(ctypes.util.find_library('c')).malloc_trim(0)` [ref](https://stackoverflow.com/questions/51938963/python-memory-not-being-released-on-linux
+), but unfortunately it does not work either
 
 So the solution would be to divide the pipeline into two scripts:
 - load the steering model to steer, sentiment model to do sentiment analysis, and embedding model for cosine similarity, save the result in file
@@ -239,7 +240,8 @@ max: 10.0 at index tensor([4, 4]), min: 0.0 at tensor([1, 5])
 ## TODO
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
 - check if different lengths in the prompts destroy the batch pipeline
-  - if needed, re-do the data using opt tokeniser
+  - it does not. but in case the padding causes any disturbance, a different set of prompts with OPT tokeniser should be prepared
+  - if needed, re-do the data using opt tokeniser: 
 - baseline with the 10 prompts
 - check qualitively to be listed
   - positive example
