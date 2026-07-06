@@ -116,6 +116,7 @@ def ht_count(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, laye
     act_add = tokens2resid_pre(tokens_add, layer, steer_model)
     act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
     act_diff = act_add - act_sub
+
     def add_activation(activation, hook):
         if activation.shape[1] == 1: return
         prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
@@ -154,17 +155,17 @@ class ModelDataset(Dataset):
     def __len__(self):
         return self.n_samples
 
-def batch_steer(prompt_add, prompt_sub, prompts, layer, coeff, seed, model, sampling_kwargs):
+def batch_steer(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coeff, seed, sampling_kwargs):
     """
     prompts: a list of strings
     return: a panda dataframe with two columns, "prompt", and 
     "generated_text": the prompt and the continuing steered generated text
     """
-    df = pd.DataFrame({"prompt": prompts})
+    df = pd.DataFrame({"prompt": prompts_batch})
     # get the steering vector
-    tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, model)
-    act_add = tokens2resid_pre(tokens_add, layer, model)
-    act_sub = tokens2resid_pre(tokens_sub, layer, model)
+    tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, steer_model)
+    act_add = tokens2resid_pre(tokens_add, layer, steer_model)
+    act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
     act_diff = act_add - act_sub
     act_diff = act_diff * coeff
 
@@ -178,7 +179,7 @@ def batch_steer(prompt_add, prompt_sub, prompts, layer, coeff, seed, model, samp
 
     # generate with the steering vector
     editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-    generated_text = hooked_generate(prompts, editing_hooks, model, seed, **sampling_kwargs)
+    generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
     df["generated_text"] = generated_text
     return df
 
@@ -252,42 +253,29 @@ def pipeline_base_batch(prompts, base_model, sentiment_model, seed, sampling_kwa
         pass
     return df
 
-def pipeline_steer_batch(prompt_add, prompt_sub, prompts_batch, steer_model, sentiment_model, relevance_model, layer, coeff, seed, sampling_kwargs):
+def pipeline_steer_batch(prompt_add, prompt_sub, prompts_batch, steer_model, sentiment_model, layer, coeff, seed, sampling_kwargs, keep_score=False, relevance_model=None):
     """
     with the given batch of prompts, steer, sentiment, and cosine similarity
     return a panda dataframe with columns: 
         prompt, generated_text (without the prompt), continuation_label, similarity
     this df is ready be concat to the results from the previous batches
     """
-    df_batch = pd.DataFrame({"prompt": prompts_batch})
-    # get the steering vector
-    tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, steer_model)
-    act_add = tokens2resid_pre(tokens_add, layer, steer_model)
-    act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
-    act_diff = act_add - act_sub
-    act_diff = act_diff * coeff
-
-    def add_activation(activation, hook):
-        if activation.shape[1] == 1: return
-        prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
-        try:
-            activation[:, :steering_dim, :] += act_diff
-        except:
-            print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
-
-    # batch generate with steering
-    editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-    generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
-    df_batch["generated_text"] = generated_text
-
+    df = batch_steer(prompt_add=prompt_add, 
+                     prompt_sub=prompt_sub, 
+                     prompts_batch=prompts_batch, 
+                     steer_model=steer_model, 
+                     layer=layer, 
+                     coeff=coeff, 
+                     seed=seed, 
+                     sampling_kwargs=sampling_kwargs)
     # slice to replace the generated text (prompt+continuation) with continuation
-    continuations = df_batch.apply(trim_text, axis=1)
-    df_batch["generated_text"] = continuations
-
+    df = remove_prompt(df)
     # batch sentiment 
-    sentiment_batch = sentiment_model(df_batch["generated_text"].values.tolist())
+    df = batch_sentiment(df, sentiment_model, keep_score)
     # batch cosine
-
+    if relevance_model:
+        pass
+    return df
 
 if __name__ == '__main__':
     layer, coeff, seed = 6, 5, 0

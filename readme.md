@@ -144,7 +144,7 @@ as there are multiple combinations that lead to max count of success, further ex
 
 if possible, use the best result combination from earlier layers           
 
-### for neg2pos (love-hate) with max_coeff=20, sample_size=10
+### neg2pos (love-hate) with max_coeff=20, sample_size=10
 - LLaMA-3-8B: 197.31 mins  
 
 ![number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B](graphs/neg2pos_llama.png "number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B")
@@ -289,6 +289,26 @@ max: 10.0 at index tensor([4, 4]), min: 0.0 at tensor([1, 5])
 </details>
 
 max: 10.0 at index tensor([5, 3]), min: 0.0 at tensor([1, 5])
+
+### pos2neg (hate-love) with max_coeff=20, sample_size=10
+- LLaMA-3-8B: mins  
+
+![number of success at each layer with coeff in range[1, 20] for pos2neg with LLaMA-3-8B](graphs/pos2neg_llama.png "number of success at each layer with coeff in range[1, 20] for pos2neg with LLaMA-3-8B")
+<details>
+
+<summary>the original matrix</summary>
+
+```
+``` 
+</details>
+
+max: 7.0 at index tensor([10, 6]) *l=10, coeff=7*, min: 1.0 at tensor([0, 4])
+
+baseline: 8 positive, mean score
+```
+0    0.999443
+1    0.996762
+```
 
 ## TODO
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
