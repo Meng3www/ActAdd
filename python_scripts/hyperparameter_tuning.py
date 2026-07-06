@@ -35,7 +35,7 @@ if __name__ == '__main__':
     model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
     print("sentiment model loaded")
     # load data
-    prompts_neg = load_data("", 10)
+    prompts_neg = load_data("imdb_neg_opt.json", 10)
     # check the number of layers
     n_layers = model_steer.cfg.n_layers
     print(f"number of layers: {n_layers}")

@@ -35,17 +35,22 @@ def hooked_generate(prompts, editing_hooks, model, seed=0, **kwargs):
     return result
 
 def load_data(file_name, slice=0):
+    """
+    TODO: load data from more file formats than just json
+    """
     with open(f"{working_dir}{file_name}", "r") as f:
         r_data = json.load(f)
-    print(f"data loaded from {working_dir}{file_name}")
-    if slice==0:
+    if slice==0 or slice >= len(r_data):
+        print(f"all data points loaded from {working_dir}{file_name}")
         return r_data
-    if slice < len(r_data):
+    else:
+        print(f"{slice} data point(s) loaded from {working_dir}{file_name}")        
         return r_data[:slice]
-    else: 
-        return r_data
      
 def save2file(data2save, file_name):
+    """
+    TODO: save file into other formats than json
+    """
     with open(f"{working_dir}{file_name}.json", "w") as f:
         json.dump(data2save, f, skipkeys=True)
     print(f"file saved as {working_dir}{file_name}.json")
