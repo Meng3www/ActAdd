@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 import torch
+from config import *
 from sklearn.metrics.pairwise import cosine_similarity
 from torch.utils.data import Dataset, DataLoader
 
@@ -31,7 +32,7 @@ def hooked_generate(prompts, editing_hooks, model, seed=0, **kwargs):
     """
     torch.manual_seed(seed)
     with model.hooks(fwd_hooks=editing_hooks):
-        result = model.generate(input=prompts, max_new_tokens=64, do_sample=True, **kwargs)
+        result = model.generate(input=prompts, max_new_tokens=max_new_tokens, do_sample=True, **kwargs)
     return result
 
 def load_data(file_name, slice=0):
@@ -148,6 +149,51 @@ class ModelDataset(Dataset):
     def __len__(self):
         return self.n_samples
 
+def batch_steer(prompt_add, prompt_sub, prompts, layer, coeff, seed, model, sampling_kwargs):
+    """
+    prompts: a list of strings
+    return: a panda dataframe with two columns, "prompt", and 
+    "generated_text": the prompt and the continuing steered generated text
+    """
+    df = pd.DataFrame({"prompt": prompts})
+    # get the steering vector
+    tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, model)
+    act_add = tokens2resid_pre(tokens_add, layer, model)
+    act_sub = tokens2resid_pre(tokens_sub, layer, model)
+    act_diff = act_add - act_sub
+    act_diff = act_diff * coeff
+
+    def add_activation(activation, hook):
+        if activation.shape[1] == 1: return
+        prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+        try:
+            activation[:, :steering_dim, :] += act_diff
+        except:
+            print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+
+    # generate with the steering vector
+    editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+    generated_text = hooked_generate(prompts, editing_hooks, model, seed, **sampling_kwargs)
+    df["generated_text"] = generated_text
+    return df
+
+def batch_base_generate(prompts, model, seed, kwargs):
+    """
+    prompts: a list of strings
+    return: a panda dataframe with two columns, "prompt", and 
+    "generated_text": the prompt and the continuing unsteered generated text
+    """
+    df = pd.DataFrame({"prompt": prompts})
+    torch.manual_seed(seed)
+    generated_text = model.generate(
+        input=prompts,
+        max_new_tokens=max_new_tokens, 
+        do_sample=True, 
+        **kwargs
+    )
+    df["generated_text"] = generated_text
+    return df
+
 def trim_text(row):
     """
     helper function to be applied to df 
@@ -156,6 +202,16 @@ def trim_text(row):
     gen_text = row["generated_text"]
     prompt = row["prompt"]
     return gen_text[len(prompt):]
+
+def remove_prompt(df):
+    """
+    df contains two columns: "prompt", and 
+    "generated_text": the prompt and the continuing generated text
+    return the same df but with the prompt removed from "generated_text"
+    """
+    continuation = df.apply(trim_text, axis=1)
+    df["generated_text"] = continuation
+    return df
 
 def map_labels(row):
     """
@@ -166,6 +222,30 @@ def map_labels(row):
         return 0
     if row["label"] == "POSITIVE":
         return 1
+
+def batch_sentiment(df, sentiment_model, keep_score):
+    """
+    df contains two columns: "prompt", and 
+    "generated_text": the continuing generated text
+    sentiment analyse in batch and map the sentiment label to 0/1
+    if keep_score is True, the score is included in the returned df
+    return a df with additional column(s)
+    """
+    sentiment_batch = sentiment_model(df["generated_text"].values.tolist())
+    sentiment_df = pd.DataFrame(sentiment_batch)
+    sentiment_labels = sentiment_df.apply(map_labels, axis=1)
+    df["continuation_label"] = sentiment_labels
+    if keep_score:
+        df["sentiment_score"] = sentiment_df["score"]
+    return df
+
+def pipeline_base_batch(prompts, base_model, sentiment_model, seed, sampling_kwargs, keep_score=False, relevance_model=None):
+    df = batch_base_generate(prompts, base_model, seed, sampling_kwargs)
+    df = remove_prompt(df)
+    df = batch_sentiment(df, sentiment_model, keep_score)
+    if relevance_model:
+        pass
+    return df
 
 def pipeline_steer_batch(prompt_add, prompt_sub, prompts_batch, steer_model, sentiment_model, relevance_model, layer, coeff, seed, sampling_kwargs):
     """

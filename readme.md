@@ -39,7 +39,7 @@ attempted fix: `!pip install transformers==4.31.0`, error persists.
 this issue is not seen in `Transformer Lens Main Demo Notebook`, which does not specify `transformer_lens==1.17.0`              
 for this reason in this project `Version: 3.4.0` is used instead            
 to run `ActAdd_sentiment_llama3_anon` properly `==1.17.0` is commented out in the install cell
-- `from sentence_transformers import SentenceTransformer`,          
+- `from sentence_transformers import SentenceTransformer`,         
 RuntimeError: Could not load libtorchcodec. Likely causes:          
 1. FFmpeg is not properly installed           
 2. The PyTorch version (2.7.1+cu126) is not compatible              
@@ -144,8 +144,8 @@ as there are multiple combinations that lead to max count of success, further ex
 
 if possible, use the best result combination from earlier layers           
 
-- for neg2pos (love-hate) with max_coeff=20, sample_size=10
-  - LLaMA-3-8B: 197.31 mins  
+### for neg2pos (love-hate) with max_coeff=20, sample_size=10
+- LLaMA-3-8B: 197.31 mins  
 
 ![number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B](graphs/neg2pos_llama.png "number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B")
 <details>
@@ -188,16 +188,17 @@ if possible, use the best result combination from earlier layers
 ``` 
 </details>
 
-max: 7.0 at index tensor([10,  6]) *l=10, coeff=7*, min: 1.0 at tensor([0, 4])
+max: 7.0 at index tensor([10, 6]) *l=10, coeff=7*, min: 1.0 at tensor([0, 4])
 
 question: the paper did not specify how they did hyperparameter tuning. is eyeball-ing the result appropriate? (esp. with the smaller value)                
   - OPT-6.7B: 126.18 mins **on imdb_neg_llama.json**  
 
-![number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B](graphs/neg2pos_opt.png "number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B")
-
 <details>
 
-<summary>the original matrix</summary>
+<summary>expand</summary>
+
+![number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B](graphs/neg2pos_opt_llama.png "number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B")
+
 
 ```
        [[ 5., 2., 4., 7., 2., 5., 6., 7., 2., 4., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3.],
@@ -233,9 +234,55 @@ question: the paper did not specify how they did hyperparameter tuning. is eyeba
         [ 4., 4., 2., 2., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 4., 4.],
         [ 4., 2., 1., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 3., 3.]]
 ```
+max: 10.0 at index tensor([4, 4]), min: 0.0 at tensor([1, 5])
+
 </details>
 
-max: 10.0 at index tensor([4, 4]), min: 0.0 at tensor([1, 5])
+  - OPT-6.7B: 126.46 mins **on imdb_neg_opt.json**  
+
+![number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B](graphs/neg2pos_opt.png "number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B")
+
+<details>
+
+<summary>the original matrix</summary>
+
+```
+       [[ 2., 5., 3., 5., 4., 3., 6., 5., 5., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6.],
+        [ 2., 2., 3., 3., 3., 0., 0., 0., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 7.],
+        [ 1., 5., 4., 5., 1., 0., 3., 1., 2., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 6.],
+        [ 2., 6., 6., 6., 8., 2., 2., 7., 8., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 8.],
+        [ 3., 6., 5., 7., 9., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 4.],
+        [ 2., 5., 9., 10., 3., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 5.],
+        [ 4., 3., 8., 8., 2., 2., 2., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 7.],
+        [ 1., 4., 10., 10., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 5.],
+        [ 2., 6., 7., 5., 1., 6., 6., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 1.],
+        [ 3., 2., 8., 0., 2., 0., 3., 3., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 5.],
+        [ 2., 4., 2., 5., 0., 3., 1., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 1.],
+        [ 2., 2., 7., 3., 3., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 3.],
+        [ 2., 1., 4., 3., 2., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 6.],
+        [ 3., 5., 4., 4., 2., 4., 4., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 6.],
+        [ 2., 3., 2., 7., 6., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 5.],
+        [ 3., 4., 3., 4., 8., 5., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 4.],
+        [ 2., 3., 3., 3., 4., 5., 4., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 5.],
+        [ 3., 5., 2., 3., 4., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 2.],
+        [ 4., 6., 2., 3., 4., 4., 3., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 3.],
+        [ 3., 5., 4., 1., 3., 4., 2., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 2.],
+        [ 3., 5., 2., 4., 2., 1., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 2.],
+        [ 2., 3., 3., 5., 4., 0., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3.],
+        [ 2., 4., 3., 0., 4., 4., 5., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 1.],
+        [ 2., 2., 5., 2., 4., 2., 4., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3.],
+        [ 1., 1., 4., 3., 2., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 3.],
+        [ 2., 3., 6., 1., 1., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 3.],
+        [ 2., 4., 6., 3., 3., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 4.],
+        [ 4., 2., 3., 4., 2., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 3.],
+        [ 4., 4., 4., 4., 3., 5., 5., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 2.],
+        [ 5., 5., 2., 4., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3.],
+        [ 5., 3., 4., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2.],
+        [ 3., 1., 1., 2., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0.]]
+```
+</details>
+
+max: 10.0 at index tensor([5, 3]), min: 0.0 at tensor([1, 5])
 
 ## TODO
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?

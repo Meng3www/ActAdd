@@ -11,8 +11,7 @@ print("device:", device)
 
 
 if __name__ == '__main__':
-    layer, coeff, seed = 6, 5, 0
-    sampling_kwargs = dict(temperature=1.0, top_p=1.0, freq_penalty=0.0)
+    layer, coeff = 6, 5
     # load steering model
     model_steer = TransformerBridge.boot_transformers(path_Llama3, device=device)
     print(f"steering model loaded to {device}")

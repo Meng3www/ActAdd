@@ -3,3 +3,11 @@ path_siebert = "/scratch/common_models/SiEBERT/"
 path_all_MiniLM = "/scratch/common_models/all-MiniLM-L6-v2/"
 path_Llama3 = "/scratch/common_models/Meta-Llama-3-8B/"
 path_opt = "/scratch/common_models/opt-6.7b/"
+
+seed = 0
+max_new_tokens = 64
+max_coeff = 20  # for hyperparameter tuning
+num_samples = 10  # for hyperparameter tuning
+sampling_kwargs = dict(temperature=1.0, top_p=1.0, freq_penalty=0.0)
+
+
