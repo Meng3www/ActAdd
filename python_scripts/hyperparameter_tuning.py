@@ -69,10 +69,10 @@ def baseline(model_path, data_file_path, out_file):
     # load data
     prompts = load_data(data_file_path, num_samples)
     base_df = pipeline_base_batch(prompts, model_generate, model_sentiment, seed, sampling_kwargs, True, None)
-    means = base_df["sentiment_score"].groupby("continuation_label").mean()
+    means = base_df["sentiment_score"].groupby(base_df["continuation_label"]).mean()
     print(f"{sum(base_df["continuation_label"])} positive, means: {means}")
-    pprint(base_df)
-    save2file(base_df, out_file, file_type="parquet")
+    df_dict = base_df.to_dict(orient="records")
+    save2file(df_dict, out_file)  
 
 
 if __name__ == '__main__':

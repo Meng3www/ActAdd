@@ -57,7 +57,7 @@ def save2file(data2save, file_name, file_type="json"):
         with open(f"{working_dir}{file_name}.json", "w") as f:
             json.dump(data2save, f, skipkeys=True)
         print(f"file saved as {working_dir}{file_name}.json")
-    elif file_type == "parquet":
+    elif file_type == "parquet":  # not convinient for qualitative tasks
         data2save.to_parquet(f"{working_dir}{file_name}.gzip", compression="gzip")
         print(f"file saved as {working_dir}{file_name}.gzip")
 

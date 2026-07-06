@@ -190,6 +190,12 @@ if possible, use the best result combination from earlier layers
 
 max: 7.0 at index tensor([10, 6]) *l=10, coeff=7*, min: 1.0 at tensor([0, 4])
 
+baseline: 5 positive, mean score
+```
+0    0.997671 
+1    0.997896 
+```
+
 question: the paper did not specify how they did hyperparameter tuning. is eyeball-ing the result appropriate? (esp. with the smaller value)                
   - OPT-6.7B: 126.18 mins **on imdb_neg_llama.json**  
 
