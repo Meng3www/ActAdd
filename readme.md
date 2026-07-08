@@ -39,7 +39,7 @@ attempted fix: `!pip install transformers==4.31.0`, error persists.
 this issue is not seen in `Transformer Lens Main Demo Notebook`, which does not specify `transformer_lens==1.17.0`              
 for this reason in this project `Version: 3.4.0` is used instead            
 to run `ActAdd_sentiment_llama3_anon` properly `==1.17.0` is commented out in the install cell
-- `from sentence_transformers import SentenceTransformer`,         
+- `from sentence_transformers import SentenceTransformer`,        
 RuntimeError: Could not load libtorchcodec. Likely causes:          
 1. FFmpeg is not properly installed           
 2. The PyTorch version (2.7.1+cu126) is not compatible              
@@ -201,7 +201,7 @@ question: the paper did not specify how they did hyperparameter tuning. is eyeba
 
 <details>
 
-<summary>expand</summary>
+<summary>expand details</summary>
 
 ![number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B](graphs/neg2pos_opt_llama.png "number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B")
 
@@ -240,7 +240,7 @@ question: the paper did not specify how they did hyperparameter tuning. is eyeba
         [ 4., 4., 2., 2., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 4., 4.],
         [ 4., 2., 1., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 3., 3.]]
 ```
-max: 10.0 at index tensor([4, 4]), min: 0.0 at tensor([1, 5])
+max: 10.0 at index tensor([4, 4]), min: 0.0 at tensor([1, 5])               
 
 </details>
 
@@ -288,10 +288,15 @@ max: 10.0 at index tensor([4, 4]), min: 0.0 at tensor([1, 5])
 ```
 </details>
 
-max: 10.0 at index tensor([5, 3]), min: 0.0 at tensor([1, 5])
+max: 10.0 at index tensor([5, 3]), min: 0.0 at tensor([1, 5])             
+baseline: 6 positive, mean score
+```
+0    0.998887
+1    0.983641
+```
 
 ### pos2neg (hate-love) with max_coeff=20, sample_size=10
-- LLaMA-3-8B: mins  
+- LLaMA-3-8B: 211.11 mins  
 
 ![number of success at each layer with coeff in range[1, 20] for pos2neg with LLaMA-3-8B](graphs/pos2neg_llama.png "number of success at each layer with coeff in range[1, 20] for pos2neg with LLaMA-3-8B")
 <details>
@@ -299,27 +304,77 @@ max: 10.0 at index tensor([5, 3]), min: 0.0 at tensor([1, 5])
 <summary>the original matrix</summary>
 
 ```
+        [[ 7., 7., 8., 7., 9., 6., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7.],
+        [ 7., 7., 6., 8., 2., 2., 5., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4., 4.],
+        [ 7., 7., 8., 6., 7., 7., 6., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8.],
+        [ 6., 8., 8., 5., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6.],
+        [ 5., 7., 6., 6., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5.],
+        [ 7., 8., 7., 8., 9., 7., 9., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8.],
+        [ 7., 6., 6., 7., 9., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8.],
+        [ 7., 8., 7., 6., 7., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6.],
+        [ 6., 6., 7., 9., 7., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8.],
+        [ 6., 6., 7., 7., 7., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8.],
+        [ 6., 7., 10., 9., 10., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8.],
+        [ 6., 6., 8., 10., 7., 6., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7.],
+        [ 6., 6., 9., 6., 8., 8., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9.],
+        [ 6., 6., 8., 9., 8., 5., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6.],
+        [ 6., 6., 7., 8., 8., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7.],
+        [ 6., 6., 7., 9., 8., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9.],
+        [ 6., 6., 9., 7., 7., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6.],
+        [ 7., 7., 6., 10., 6., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7.],
+        [ 7., 7., 8., 5., 9., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 5.],
+        [ 7., 7., 6., 9., 9., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 5.],
+        [ 7., 7., 4., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 6.],
+        [ 7., 7., 6., 8., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 6.],
+        [ 7., 7., 5., 10., 9., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 6.],
+        [ 6., 6., 8., 8., 7., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 7.],
+        [ 6., 6., 6., 8., 9., 8., 8., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7.],
+        [ 7., 8., 9., 7., 7., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6.],
+        [ 6., 6., 5., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 6.],
+        [ 6., 6., 8., 9., 7., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 8., 6.],
+        [ 6., 6., 6., 6., 4., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 6.],
+        [ 6., 6., 8., 10., 9., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 6.],
+        [ 6., 6., 7., 8., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 9., 7.],
+        [ 6., 6., 8., 8., 6., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 7.]]
 ``` 
 </details>
 
-max: 7.0 at index tensor([10, 6]) *l=10, coeff=7*, min: 1.0 at tensor([0, 4])
+max: 10.0 at index tensor([10, 2]), min: 2.0 at tensor([1, 4])
 
 baseline: 8 positive, mean score
 ```
 0    0.999443
 1    0.996762
 ```
+  - OPT-6.7B: mins  
 
-## TODO
+![number of success at each layer with coeff in range[1, 20] for pos2neg with OPT-6.7B](graphs/pos2neg_opt.png "number of success at each layer with coeff in range[1, 20] for pos2neg with OPT-6.7B")
+
+<details>
+
+<summary>the original matrix</summary>
+
+```
+       
+```
+</details>
+
+max:             
+baseline: 7 positive, mean score
+```
+0    0.998335
+1    0.996110
+```
+
+## TODOs
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
-- check if different lengths in the prompts destroy the batch pipeline
+- &cross; check if different lengths in the prompts destroys the batch pipeline
   - it does not. but in case the padding causes any disturbance, a different set of prompts with OPT tokeniser should be prepared
-- baseline with the 10 prompts
+- &cross; baseline with the 10 prompts
+- &cross; heatmap
 - check qualitively to be listed
   - positive example
   - negative example
-- heatmap on hype/senti/toxi
-- plot for main findings
 
 # reducing toxicity (4.3)
 Fluency, Relevance, Toxicity
@@ -332,4 +387,6 @@ Fluency, Relevance, Toxicity
 Fluency, Relevance, prompt eng., random activation, partial 
 
 # issues
-
+# TODOs
+- heatmap on hype/senti/toxi
+- plot for main findings

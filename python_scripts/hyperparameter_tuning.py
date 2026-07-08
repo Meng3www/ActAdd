@@ -67,7 +67,7 @@ def baseline(generate_model, sentiment_model, data_file_path, out_file):
     df_dict = base_df.to_dict(orient="records")
     save2file(df_dict, out_file)  
 
-def qualitative(steer_model, sentiment_model, data_file_path, paras):
+def qualitative(prompt_add, prompt_sub, steer_model, sentiment_model, data_file_path, paras):
     """
     paras: list of (layer, coeff) with which the 10 prompts will be steered
     the results will be stored into a json file including the sentiment score and its mean
@@ -79,8 +79,8 @@ def qualitative(steer_model, sentiment_model, data_file_path, paras):
     ret_dict = dict()
     prompts = load_data(data_file_path, num_samples)
     for layer, coeff in paras:
-        df = pipeline_steer_batch(prompt_add="", 
-                                prompt_sub="", 
+        df = pipeline_steer_batch(prompt_add=prompt_add, 
+                                prompt_sub=prompt_sub, 
                                 prompts_batch=prompts, 
                                 steer_model=steer_model, 
                                 sentiment_model=sentiment_model, 
@@ -92,16 +92,32 @@ def qualitative(steer_model, sentiment_model, data_file_path, paras):
                                 relevance_model=None)
         para_dict = {"count_pos": sum(df["continuation_label"])}
         means = df["sentiment_score"].groupby(df["continuation_label"]).mean()
+        para_dict["score_0"] = means[0]
+        para_dict["score_1"] = means[1]
+        para_dict["result"] = df.to_dict(orient="records")
+        ret_dict[(layer, coeff)] = para_dict
+        return ret_dict
 
 
 if __name__ == '__main__':
-    model_generate = TransformerBridge.boot_transformers(path_opt, device=device)
+    model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
     # model_steer.enable_compatibility_mode()  # this line causes oom error
     print(f"baseline generating model loaded to {device}")
     # load sentiment model
     model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
     print("sentiment model loaded")
-    baseline(model_generate, model_sentiment, "imdb_neg_opt.json", "baseline_neg_opt_hpt")
-    baseline(model_generate, model_sentiment, "imdb_pos_opt.json", "baseline_pos_opt_hpt")    
-    quantitative(model_generate, model_sentiment, "imdb_pos_llama.json")
+    # 08.07 two baselines and quantitative for opt pos2neg
+    # baseline(model_generate, model_sentiment, "imdb_neg_opt.json", "baseline_neg_opt_hpt")
+    # baseline(model_generate, model_sentiment, "imdb_pos_opt.json", "baseline_pos_opt_hpt")    
+    # quantitative(model_generate, model_sentiment, "imdb_pos_opt.json")
+    
+    # 08.07 test qualitative for llama
+    neg2pos_paras = [(10, 7), (10, 8)]
+    ret_dict = qualitative(prompt_add=" love", 
+                           prompt_sub=" hate",
+                           steer_model=model_generate, 
+                           sentiment_model=model_sentiment, 
+                           data_file_path="imdb_neg_llama.json", 
+                           paras=neg2pos_paras)
+    pprint(ret_dict)
 
