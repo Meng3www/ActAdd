@@ -99,7 +99,7 @@ def pipeline_steer_single(prompt_add, prompt_sub, prompts, steer_model, sentimen
         embedding_prompt = relevance_model.encode(prompt)
         embedding_generated_text = relevance_model.encode(generated_text[len(prompt):])
         relevance = cosine_similarity(embedding_prompt.reshape(1, -1), 
-                                    embedding_generated_text.reshape(1, -1))
+                                      embedding_generated_text.reshape(1, -1))
         steering_case["similarity"] = relevance[0][0].item()
         steered_all.append(steering_case)
     print(len(steered_all), " documents steered")
@@ -245,12 +245,27 @@ def batch_sentiment(df, sentiment_model, keep_score):
         df["sentiment_score"] = sentiment_df["score"]
     return df
 
+def batch_similarity(df, relevance_model):
+    """
+    df contains two columns: "prompt", and 
+    "generated_text": the continuing generated text
+    cosine_similarity calculated in batch
+    return a df with an additional column "similarity"
+    """
+    embedding_prompt_batch = relevance_model.encode(df["prompt"])
+    embedding_generated_text_batch = relevance_model.encode(df["generated_text"])
+    relevance_batch = cosine_similarity(embedding_prompt_batch,   # .reshape(1, -1)
+                                        embedding_generated_text_batch)
+    similarity = relevance_batch.diagonal().reshape(relevance_batch.shape[0], 1)
+    df["similarity"] = similarity
+    return df
+
 def pipeline_base_batch(prompts, base_model, sentiment_model, seed, sampling_kwargs, keep_score=False, relevance_model=None):
     df = batch_base_generate(prompts, base_model, seed, sampling_kwargs)
     df = remove_prompt(df)
     df = batch_sentiment(df, sentiment_model, keep_score)
     if relevance_model:
-        pass
+        df = batch_similarity(df, relevance_model)
     return df
 
 def pipeline_steer_batch(prompt_add, prompt_sub, prompts_batch, steer_model, sentiment_model, layer, coeff, seed, sampling_kwargs, keep_score=False, relevance_model=None):
@@ -274,7 +289,7 @@ def pipeline_steer_batch(prompt_add, prompt_sub, prompts_batch, steer_model, sen
     df = batch_sentiment(df, sentiment_model, keep_score)
     # batch cosine
     if relevance_model:
-        pass
+        df = batch_similarity(df, relevance_model)
     return df
 
 if __name__ == '__main__':

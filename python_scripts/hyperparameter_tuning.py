@@ -77,6 +77,7 @@ def qualitative(prompt_add, prompt_sub, steer_model, sentiment_model, data_file_
                       results: [{}*10]}, ...}
     """
     ret_dict = dict()
+    start = time.time()
     prompts = load_data(data_file_path, num_samples)
     for layer, coeff in paras:
         df = pipeline_steer_batch(prompt_add=prompt_add, 
@@ -96,7 +97,8 @@ def qualitative(prompt_add, prompt_sub, steer_model, sentiment_model, data_file_
         para_dict["score_1"] = means[1]
         para_dict["result"] = df.to_dict(orient="records")
         ret_dict[(layer, coeff)] = para_dict
-        return ret_dict
+    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
+    return ret_dict
 
 
 if __name__ == '__main__':

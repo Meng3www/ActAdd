@@ -39,7 +39,7 @@ attempted fix: `!pip install transformers==4.31.0`, error persists.
 this issue is not seen in `Transformer Lens Main Demo Notebook`, which does not specify `transformer_lens==1.17.0`              
 for this reason in this project `Version: 3.4.0` is used instead            
 to run `ActAdd_sentiment_llama3_anon` properly `==1.17.0` is commented out in the install cell
-- `from sentence_transformers import SentenceTransformer`,        
+- `from sentence_transformers import SentenceTransformer`,       
 RuntimeError: Could not load libtorchcodec. Likely causes:          
 1. FFmpeg is not properly installed           
 2. The PyTorch version (2.7.1+cu126) is not compatible              
@@ -150,7 +150,7 @@ if possible, use the best result combination from earlier layers
 ![number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B](graphs/neg2pos_llama.png "number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B")
 <details>
 
-<summary>the original matrix</summary>
+<summary>the original matrix counts the number of 1s, not successes</summary>
 
 ```
        [[3., 6., 5., 3., 1., 4., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3.],
@@ -205,7 +205,6 @@ question: the paper did not specify how they did hyperparameter tuning. is eyeba
 
 ![number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B](graphs/neg2pos_opt_llama.png "number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B")
 
-
 ```
        [[ 5., 2., 4., 7., 2., 5., 6., 7., 2., 4., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3.],
         [ 5., 3., 6., 4., 4., 0., 0., 0., 1., 2., 2., 2., 1., 1., 1., 1., 1., 1., 1., 6.],
@@ -250,7 +249,7 @@ max: 10.0 at index tensor([4, 4]), min: 0.0 at tensor([1, 5])
 
 <details>
 
-<summary>the original matrix</summary>
+<summary>the original matrix counts the number of 1s, not successes</summary>
 
 ```
        [[ 2., 5., 3., 5., 4., 3., 6., 5., 5., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6., 6.],
@@ -301,7 +300,7 @@ baseline: 6 positive, mean score
 ![number of success at each layer with coeff in range[1, 20] for pos2neg with LLaMA-3-8B](graphs/pos2neg_llama.png "number of success at each layer with coeff in range[1, 20] for pos2neg with LLaMA-3-8B")
 <details>
 
-<summary>the original matrix</summary>
+<summary>the original matrix counts the number of 1s, not successes</summary>
 
 ```
         [[ 7., 7., 8., 7., 9., 6., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7., 7.],
@@ -346,25 +345,57 @@ baseline: 8 positive, mean score
 0    0.999443
 1    0.996762
 ```
-  - OPT-6.7B: mins  
+  - OPT-6.7B: 142.22 mins  
 
 ![number of success at each layer with coeff in range[1, 20] for pos2neg with OPT-6.7B](graphs/pos2neg_opt.png "number of success at each layer with coeff in range[1, 20] for pos2neg with OPT-6.7B")
 
 <details>
 
-<summary>the original matrix</summary>
+<summary>the original matrix counts the number of 1s, not successes</summary>
 
 ```
-       
+       [[ 6., 5., 7., 9., 8., 5., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10.],
+        [ 6., 8., 6., 8., 10., 9., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 8.],
+        [ 6., 6., 5., 9., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 7.],
+        [ 7., 8., 8., 10., 10., 9., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 8.],
+        [ 6., 8., 5., 10., 9., 9., 9., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 6.],
+        [ 6., 7., 9., 9., 9., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 4.],
+        [ 6., 7., 4., 10., 10., 10., 9., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 5.],
+        [ 6., 8., 3., 10., 10., 10., 6., 6., 7., 7., 7., 7., 7., 7.,  7., 7., 7., 7., 7., 4.],
+        [ 6., 6., 4., 10., 10., 8., 6., 8., 6., 6., 6., 6., 6., 6.,  6., 6., 6., 6., 6., 3.],
+        [ 7., 4., 6., 10., 10., 10., 10., 9., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 10., 4.],
+        [ 8., 7., 4., 10., 8., 8., 6., 6., 5., 5., 5., 5., 5., 5.,  5., 5., 5., 5., 5., 7.],
+        [ 5., 8., 5., 10., 9., 9., 3., 6., 6., 6., 6., 6., 6., 6.,  6., 6., 6., 6., 6., 4.],
+        [ 6., 8., 5., 7., 6., 7., 7., 7., 7., 7., 7., 7., 7., 7.,  7., 7., 7., 7., 7., 6.],
+        [ 6., 7., 9., 7., 7., 2., 5., 6., 5., 5., 5., 5., 5., 5.,  5., 5., 5., 5., 5., 6.],
+        [ 6., 7., 6., 6., 4., 5., 4., 3., 3., 3., 3., 3., 3., 3.,  3., 3., 3., 3., 3., 5.],
+        [ 7., 5., 7., 9., 3., 6., 4., 6., 6., 6., 6., 6., 6., 6.,  6., 6., 6., 6., 6., 7.],
+        [ 7., 6., 9., 4., 3., 3., 4., 4., 4., 4., 4., 4., 4., 4.,  4., 4., 4., 4., 4., 6.],
+        [ 6., 6., 7., 4., 4., 4., 5., 5., 5., 5., 5., 5., 5., 5.,  5., 5., 5., 5., 5., 7.],
+        [ 7., 7., 9., 8., 6., 3., 7., 7., 7., 7., 7., 7., 7., 7.,  7., 7., 7., 7., 7., 6.],
+        [ 7., 6., 7., 6., 5., 6., 6., 4., 4., 4., 4., 4., 4., 4.,  4., 4., 4., 4., 4., 5.],
+        [ 7., 7., 5., 8., 6., 4., 6., 7., 7., 7., 7., 7., 7., 7.,  7., 7., 7., 7., 7., 8.],
+        [ 7., 6., 6., 5., 7., 5., 6., 6., 6., 6., 6., 6., 6., 6.,  6., 6., 6., 6., 6., 6.],
+        [ 7., 6., 10., 4., 5., 4., 3., 3., 3., 3., 3., 3., 3., 3.,  3., 3., 3., 3., 3., 6.],
+        [ 6., 6., 8., 6., 5., 5., 6., 5., 5., 5., 5., 5., 5., 5.,  5., 5., 5., 5., 5., 6.],
+        [ 6., 5., 8., 8., 6., 5., 6., 6., 6., 6., 6., 6., 6., 6.,  6., 6., 6., 6., 6., 8.],
+        [ 6., 5., 8., 8., 9., 6., 5., 5., 5., 5., 5., 5., 5., 5.,  5., 5., 5., 5., 5., 7.],
+        [ 6., 8., 7., 9., 6., 5., 6., 5., 5., 5., 5., 5., 5., 5.,  5., 5., 5., 5., 5., 8.],
+        [ 8., 6., 7., 7., 6., 7., 7., 7., 7., 7., 7., 7., 7., 7.,  7., 7., 7., 7., 7., 5.],
+        [ 6., 5., 9., 8., 8., 7., 8., 8., 8., 8., 8., 8., 8., 8.,  8., 8., 8., 8., 8., 5.],
+        [ 7., 8., 6., 9., 7., 5., 5., 5., 5., 5., 5., 5., 5., 5.,  5., 5., 5., 5., 5., 6.],
+        [ 6., 8., 9., 8., 6., 7., 7., 7., 7., 7., 7., 7., 7., 7.,  7., 7., 7., 7., 5., 5.],
+        [ 4., 5., 5., 3., 4., 5., 5., 5., 5., 5., 5., 5., 5., 5.,  5., 5., 5., 5., 6., 6.]]
 ```
 </details>
 
-max:             
+max: 10.0 at index tensor([0, 6]), min: 2.0 at tensor([13,  5])           
 baseline: 7 positive, mean score
 ```
 0    0.998335
 1    0.996110
 ```
+> In replicating the unsteered OPT sentiment baseline, we find that the NegToPos direction is consistently higher success than PosToNeg. This holds across different combinations of model hyperparameters, including those in Pei et al. 2023.
 
 ## TODOs
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
