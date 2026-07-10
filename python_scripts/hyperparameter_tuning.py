@@ -8,7 +8,7 @@ from config import *
 from pprint import pprint
 from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
-from utils_aa import ht_count, load_data, pipeline_base_batch, save2file, pipeline_steer_batch, pipeline_steer_batch1, pipeline_steer2batch 
+from utils_aa import ht_count, load_data, pipeline_base_batch, save2file, pipeline_steer_batch, pipeline_steer2batch 
 import time
 import torch
 import transformer_lens.utilities as utils
@@ -18,7 +18,7 @@ device = utils.get_device()
 print("device:", device)
 
 
-def quantitative(model_steer, model_sentiment, data_file_path):
+def quantitative(prompt_add, prompt_sub, model_steer, model_sentiment, data_file_path, out_file_name):
   """
   steer_path: path to the steering model
   data_file_path: the matching path for the file that contains the prompts
@@ -37,9 +37,10 @@ def quantitative(model_steer, model_sentiment, data_file_path):
   grid = torch.zeros(n_layers, max_coeff)
   print(f"grid.size(): {grid.size()}")
   start = time.time()
-  for layer in range(n_layers):
-    grid = ht_count(prompt_add=" hate", 
-            prompt_sub=" love", 
+  # for layer in range(n_layers):
+  for layer in [10]:
+    grid, ret_list = ht_count(prompt_add=prompt_add, 
+            prompt_sub=prompt_sub, 
             prompts=prompts, 
             steer_model=model_steer, 
             sentiment_model=model_sentiment, 
@@ -49,7 +50,10 @@ def quantitative(model_steer, model_sentiment, data_file_path):
             grid=grid,
             max_coeff=max_coeff)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
+    break
   print(grid)
+  print("len(ret_list) ", len(ret_list))
+  save2file(ret_list, out_file_name)
   print(f"max: {grid.max().item()} at index {(grid == grid.max().item()).nonzero(as_tuple=False)[0]}, min: {grid.min().item()} at {(grid == grid.min().item()).nonzero(as_tuple=False)[0]}")
 
 def baseline(generate_model, sentiment_model, data_file_path, out_file):
@@ -97,26 +101,7 @@ def qualitative_batch_steer(prompt_add, prompt_sub, steer_model, sentiment_model
     para_dict["score_1"] = means[1]
     para_dict["result"] = df.to_dict(orient="records")
     ret_dict[(layer, coeff)] = para_dict
-    print(f"pipeline_steer_batch count_pos: {para_dict["count_pos"]}")
-  
-    df1 = pipeline_steer_batch1(prompt_add=prompt_add, 
-                prompt_sub=prompt_sub, 
-                prompts_batch=prompts, 
-                steer_model=steer_model, 
-                sentiment_model=sentiment_model, 
-                layer=layer, 
-                coeff=coeff, 
-                seed=seed, 
-                sampling_kwargs=sampling_kwargs, 
-                keep_score=True, 
-                relevance_model=None)
-    para_dict1 = {"count_pos": sum(df1["continuation_label"])}
-    means1 = df1["sentiment_score"].groupby(df1["continuation_label"]).mean()
-    para_dict1["score_0"] = means1[0]
-    para_dict1["score_1"] = means1[1]
-    para_dict1["result"] = df1.to_dict(orient="records")
-    ret_dict["pipeline_steer_batch1"] = para_dict1
-    print(f"pipeline_steer_batch1 count_pos: {para_dict1["count_pos"]}")
+    print(f"count_pos: {para_dict["count_pos"]}")
 
   print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
   return ret_dict
@@ -151,8 +136,7 @@ def qualitative_single_steer(prompt_add, prompt_sub, steer_model, sentiment_mode
     para_dict["score_1"] = means[1]
     para_dict["result"] = df.to_dict(orient="records")
     ret_dict[(layer, coeff)] = para_dict
-    print(f"pipeline_steer_batch count_pos: {para_dict["count_pos"]}")
-
+    print(f"count_pos: {para_dict["count_pos"]}")
   print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
   return ret_dict
 
@@ -170,19 +154,23 @@ if __name__ == '__main__':
   
   # test qualitative for llama
   prompt_add, prompt_sub, data_file_path = " love", " hate", "imdb_neg_llama.json"
-  neg2pos_paras = [(10, 7), (10, 8)]
-  ret_dict = qualitative_batch_steer(prompt_add=prompt_add, 
-              prompt_sub=prompt_sub,
-              steer_model=model_generate, 
-              sentiment_model=model_sentiment, 
-              data_file_path=data_file_path, 
-              paras=neg2pos_paras)
-  print(ret_dict)
+  neg2pos_paras = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10), (0, 11), (0, 12), (0, 13), (0, 14)]
 
-  ret_dict_single = qualitative_single_steer(prompt_add=prompt_add, 
-                                             prompt_sub=prompt_sub, 
-                                             steer_model=model_generate, 
-                                             sentiment_model=model_sentiment, 
-                                             data_file_path=data_file_path, 
-                                             paras=neg2pos_paras)
+  quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, data_file_path, "qualitative_llama_neg")
+
+  # ret_dict_single = qualitative_single_steer(prompt_add=prompt_add, 
+  #                                            prompt_sub=prompt_sub, 
+  #                                            steer_model=model_generate, 
+  #                                            sentiment_model=model_sentiment, 
+  #                                            data_file_path=data_file_path, 
+  #                                            paras=neg2pos_paras)
+  
+  # ret_dict = qualitative_batch_steer(prompt_add=prompt_add, 
+  #             prompt_sub=prompt_sub,
+  #             steer_model=model_generate, 
+  #             sentiment_model=model_sentiment, 
+  #             data_file_path=data_file_path, 
+  #             paras=neg2pos_paras)
+  # print("baseline")
+  # baseline(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")  
 

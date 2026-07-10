@@ -140,12 +140,13 @@ the following matrices and heatmaps show the count where the sentiment classifie
 for neg2pos, 1 should be counted. As for pos2neg, the count of 0 should be counted as the number of success      
 as there are multiple combinations that lead to max count of success, further experiments are done
  - check the average score
+    - the average score is always close to 1, not directly informative
  - qualitive comparison
 
-if possible, use the best result combination from earlier layers      
+when no other factors differ, use the best combination from earlier layers      
 
 ### neg2pos (love-hate) with max_coeff=20, sample_size=10
-- LLaMA-3-8B: 197.31 mins 
+#### LLaMA-3-8B: 197.31 mins 
 
 ![number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B](graphs/neg2pos_llama.png "number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B")
 <details>
@@ -189,6 +190,8 @@ if possible, use the best result combination from earlier layers
 </details>
 
 max: 7.0 at index tensor([10, 6]) *l=10, coeff=7*, min: 1.0 at tensor([0, 4])
+- qualitative results: with coeff=7 and higher, the generated text are very similar. not of great quality.
+- *l=10, coeff=7* is the parameter set for neg2pos for LLaMA-3-8B. 
 
 baseline: 5 positive, mean score
 ```
@@ -197,7 +200,8 @@ baseline: 5 positive, mean score
 ```
 
 question: the paper did not specify how they did hyperparameter tuning. is eyeball-ing the result appropriate? (esp. with the smaller value)        
- - OPT-6.7B: 126.18 mins **on imdb_neg_llama.json** 
+
+#### OPT-6.7B: 126.18 mins **on imdb_neg_llama.json** 
 
 <details>
 
@@ -243,7 +247,7 @@ max: 10.0 at index tensor([4, 4]), min: 0.0 at tensor([1, 5])
 
 </details>
 
- - OPT-6.7B: 126.46 mins **on imdb_neg_opt.json** 
+#### OPT-6.7B: 126.46 mins **on imdb_neg_opt.json** 
 
 ![number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B](graphs/neg2pos_opt.png "number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B")
 
@@ -287,7 +291,9 @@ max: 10.0 at index tensor([4, 4]), min: 0.0 at tensor([1, 5])
 ```
 </details>
 
-max: 10.0 at index tensor([5, 3]), min: 0.0 at tensor([1, 5])       
+max: 10.0 at index tensor([5, 3]), min: 0.0 at tensor([1, 5])   
+- qualitative results: 
+
 baseline: 6 positive, mean score
 ```
 0  0.998887
@@ -295,7 +301,7 @@ baseline: 6 positive, mean score
 ```
 
 ### pos2neg (hate-love) with max_coeff=20, sample_size=10
-- LLaMA-3-8B: 211.11 mins 
+#### LLaMA-3-8B: 211.11 mins 
 
 ![number of success at each layer with coeff in range[1, 20] for pos2neg with LLaMA-3-8B](graphs/pos2neg_llama.png "number of success at each layer with coeff in range[1, 20] for pos2neg with LLaMA-3-8B")
 <details>
@@ -339,13 +345,14 @@ baseline: 6 positive, mean score
 </details>
 
 max: 10.0 at index tensor([10, 2]), min: 2.0 at tensor([1, 4])
+- qualitative results: 
 
 baseline: 8 positive, mean score
 ```
 0  0.999443
 1  0.996762
 ```
- - OPT-6.7B: 142.22 mins 
+#### OPT-6.7B: 142.22 mins 
 
 ![number of success at each layer with coeff in range[1, 20] for pos2neg with OPT-6.7B](graphs/pos2neg_opt.png "number of success at each layer with coeff in range[1, 20] for pos2neg with OPT-6.7B")
 
@@ -389,7 +396,9 @@ baseline: 8 positive, mean score
 ```
 </details>
 
-max: 10.0 at index tensor([0, 6]), min: 2.0 at tensor([13, 5])      
+max: 10.0 at index tensor([0, 6]), min: 2.0 at tensor([13, 5])     
+- qualitative results: 
+
 baseline: 7 positive, mean score
 ```
 0  0.998335
@@ -426,9 +435,7 @@ In the qualitative round to locate the hyperparameter, batch steering is experim
 - `1, n_prompt_token, d`
 - `n_sample, n_prompt_token, d` 
 
-but they all yield to the same results (in `../ignored_files/`).
-
-## single steering into a batch, batch sentiment
+but they all yield to the same results (in `../ignored_files/`). also tried steering prompts one by one, saved into a df, and then batch sentiment. also got different results from either single pipeline, or batch pipeline
 
 # TODOs
 - heatmap on hype/senti/toxi
