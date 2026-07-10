@@ -6,293 +6,462 @@ from sklearn.metrics.pairwise import cosine_similarity
 from torch.utils.data import Dataset, DataLoader
 
 
-working_dir = "/scratch/fmeng/ActAdd/data_result/"
-
-
 def prompts2tokens(prompt_add, prompt_sub, model):
-    """
-    check token length of each prompt, pad right to the same token len
-    model: steering model
-    """
-    len_tokens_add = model.to_tokens(prompt_add).shape[1]
-    len_tokens_sub = model.to_tokens(prompt_sub).shape[1]
-    len_tokens = max(len_tokens_add, len_tokens_sub)
-    return model.to_tokens(prompt_add.ljust(len(prompt_add)+len_tokens-len_tokens_add)), model.to_tokens(prompt_sub.ljust(len(prompt_sub)+len_tokens-len_tokens_sub))
+  """
+  check token length of each prompt, pad right to the same token len
+  model: steering model
+  """
+  len_tokens_add = model.to_tokens(prompt_add).shape[1]
+  len_tokens_sub = model.to_tokens(prompt_sub).shape[1]
+  len_tokens = max(len_tokens_add, len_tokens_sub)
+  return model.to_tokens(prompt_add.ljust(len(prompt_add)+len_tokens-len_tokens_add)), model.to_tokens(prompt_sub.ljust(len(prompt_sub)+len_tokens-len_tokens_sub))
 
 def tokens2resid_pre(tokens, layer, model):
-    """
-    model: steering model
-    """
-    _, cache = model.run_with_cache(tokens)
-    return cache[f"blocks.{layer}.hook_resid_pre"]
+  """
+  model: steering model
+  """
+  _, cache = model.run_with_cache(tokens)
+  return cache[f"blocks.{layer}.hook_resid_pre"]
 
 def hooked_generate(prompts, editing_hooks, model, seed=0, **kwargs):
-    """
-    model: steering model
-    """
-    torch.manual_seed(seed)
-    with model.hooks(fwd_hooks=editing_hooks):
-        result = model.generate(input=prompts, max_new_tokens=max_new_tokens, do_sample=True, **kwargs)
-    return result
+  """
+  model: steering model
+  """
+  torch.manual_seed(seed)
+  with model.hooks(fwd_hooks=editing_hooks):
+    result = model.generate(input=prompts, max_new_tokens=max_new_tokens, do_sample=True, **kwargs)
+  return result
+
+def get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff):
+  tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, steer_model)
+  act_add = tokens2resid_pre(tokens_add, layer, steer_model)
+  act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
+  act_diff = act_add - act_sub
+  act_diff = act_diff * coeff
+  return act_diff
 
 def load_data(file_name, slice=0):
-    """
-    TODO: load data from more file formats than just json
-    """
-    with open(f"{working_dir}{file_name}", "r") as f:
-        r_data = json.load(f)
-    if slice==0 or slice >= len(r_data):
-        print(f"all data points loaded from {working_dir}{file_name}")
-        return r_data
-    else:
-        print(f"{slice} data point(s) loaded from {working_dir}{file_name}")        
-        return r_data[:slice]
-     
+  """
+  TODO: load data from more file formats than just json
+  """
+  with open(f"{working_dir}{file_name}", "r") as f:
+    r_data = json.load(f)
+  if slice==0 or slice >= len(r_data):
+    print(f"all data points loaded from {working_dir}{file_name}")
+    return r_data
+  else:
+    print(f"{slice} data point(s) loaded from {working_dir}{file_name}")    
+    return r_data[:slice]
+   
 def save2file(data2save, file_name, file_type="json"):
-    """
-    save file into json format if not specified.
-    if data2save is a panda dataframe, then `file_type="parquet"`
-    """
-    if file_type == "json":
-        with open(f"{working_dir}{file_name}.json", "w") as f:
-            json.dump(data2save, f, skipkeys=True)
-        print(f"file saved as {working_dir}{file_name}.json")
-    elif file_type == "parquet":  # not convinient for qualitative tasks
-        data2save.to_parquet(f"{working_dir}{file_name}.gzip", compression="gzip")
-        print(f"file saved as {working_dir}{file_name}.gzip")
+  """
+  save file into json format if not specified.
+  if data2save is a panda dataframe, then `file_type="parquet"`
+  """
+  if file_type == "json":
+    with open(f"{working_dir}{file_name}.json", "w") as f:
+      json.dump(data2save, f, skipkeys=True)
+    print(f"file saved as {working_dir}{file_name}.json")
+  elif file_type == "parquet": # not convinient for qualitative tasks
+    data2save.to_parquet(f"{working_dir}{file_name}.gzip", compression="gzip")
+    print(f"file saved as {working_dir}{file_name}.gzip")
+
+def steer2batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs):
+  """
+  steer prompts one by one, and save the prompts and the generated texts that contain the prompt into a pd dataframe
+  return the dataframe for downstream
+  """
+  act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+  editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+  df = pd.DataFrame({"prompt": prompts})
+  generated_texts = list()
+  def add_activation(activation, hook):
+    if activation.shape[1] == 1: return
+    prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+    try:
+      activation[:, :steering_dim, :] += act_diff
+    except:
+      print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+  for prompt in prompts:
+    generated_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)    
+    generated_texts.append(generated_text)
+  df["generated_text"] = generated_texts
+  return df
 
 def pipeline_steer_single(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, relevance_model, layer, coeff, seed, sampling_kwargs, file_name):
-    """
-    steering prompts one by one using the activation from `prompt_add-prompt_sub`
-    the generated text without the prompt is evaluated by sentiment_model and relevance_model
-    the result is saved in json format in file_name
-    """
-    steered_all = list()
-    # get the steering vector
-    tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, steer_model)
-    act_add = tokens2resid_pre(tokens_add, layer, steer_model)
-    act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
-    act_diff = act_add - act_sub
-    act_diff = act_diff * coeff
+  """
+  steering prompts one by one using the activation from `prompt_add-prompt_sub`
+  the generated text without the prompt is evaluated by sentiment_model and relevance_model
+  the result is saved in json format in file_name
+  """
+  steered_all = list()
+  # get the steering vector
+  act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
 
-    def add_activation(activation, hook):
-        if activation.shape[1] == 1: return
-        prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
-        try:
-            activation[:, :steering_dim, :] += act_diff
-        except:
-            print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+  def add_activation(activation, hook):
+    if activation.shape[1] == 1: return
+    prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+    try:
+      activation[:, :steering_dim, :] += act_diff
+    except:
+      print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
 
-    # generate with the steering vector
-    editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-    for prompt in prompts:
-        steering_case = {"prompt": prompt}
-        generated_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)
-        steering_case["generated_text"] = generated_text  
-        # continuation_label
-        sentiment_result = sentiment_model(generated_text[len(prompt):])
-        if sentiment_result[0]["label"] == "POSITIVE":
-            steering_case["continuation_label"] = 1
-        else:  
-            steering_case["continuation_label"] = 0
-        # similarity
-        embedding_prompt = relevance_model.encode(prompt)
-        embedding_generated_text = relevance_model.encode(generated_text[len(prompt):])
-        relevance = cosine_similarity(embedding_prompt.reshape(1, -1), 
-                                      embedding_generated_text.reshape(1, -1))
-        steering_case["similarity"] = relevance[0][0].item()
-        steered_all.append(steering_case)
-    print(len(steered_all), " documents steered")
-    save2file(steered_all, file_name)
+  # generate with the steering vector
+  editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+  for prompt in prompts:
+    steering_case = {"prompt": prompt}
+    generated_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)
+    steering_case["generated_text"] = generated_text 
+    # continuation_label
+    sentiment_result = sentiment_model(generated_text[len(prompt):])
+    if sentiment_result[0]["label"] == "POSITIVE":
+      steering_case["continuation_label"] = 1
+    else: 
+      steering_case["continuation_label"] = 0
+    # similarity
+    embedding_prompt = relevance_model.encode(prompt)
+    embedding_generated_text = relevance_model.encode(generated_text[len(prompt):])
+    relevance = cosine_similarity(embedding_prompt.reshape(1, -1), 
+                   embedding_generated_text.reshape(1, -1))
+    steering_case["similarity"] = relevance[0][0].item()
+    steered_all.append(steering_case)
+  print(len(steered_all), " documents steered")
+  save2file(steered_all, file_name)
 
 def ht_count(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, seed, sampling_kwargs, grid, max_coeff):
-    """
-    hyperparameter tuning by counting the number of times the generated text (excluding the prompt)
-    is steered towards 1 (positive)
-    grid: torch.Tensor of size (model_layer, 20)
-    """
-    # get the steering vector
-    tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, steer_model)
-    act_add = tokens2resid_pre(tokens_add, layer, steer_model)
-    act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
-    act_diff = act_add - act_sub
+  """
+  hyperparameter tuning by counting the number of times the generated text (excluding the prompt)
+  is steered towards 1 (positive)
+  grid: torch.Tensor of size (model_layer, 20)
+  """
+  # get the steering vector
+  tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, steer_model)
+  act_add = tokens2resid_pre(tokens_add, layer, steer_model)
+  act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
+  act_diff = act_add - act_sub
 
-    def add_activation(activation, hook):
-        if activation.shape[1] == 1: return
-        prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
-        try:
-            activation[:, :steering_dim, :] += act_diff
-        except:
-            print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+  def add_activation(activation, hook):
+    if activation.shape[1] == 1: return
+    prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+    try:
+      activation[:, :steering_dim, :] += act_diff
+    except:
+      print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
 
-    for coeff in range(1, max_coeff+1):
-        print(f"layer={layer}, coeff={coeff}")
-        act_diff = act_diff * coeff     
-        # generate with the steering vector
-        editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-        sentiments = list() 
-        for prompt in prompts:
-            generated_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)
-            # continuation_label
-            sentiment_result = sentiment_model(generated_text[len(prompt):])
-            if sentiment_result[0]["label"] == "POSITIVE":
-                sentiments.append(1)
-            else:  
-                sentiments.append(0)
-        grid[layer, coeff-1] = sum(sentiments)
-    return grid
+  for coeff in range(1, max_coeff+1):
+    print(f"layer={layer}, coeff={coeff}")
+    act_diff = act_diff * coeff   
+    # generate with the steering vector
+    editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+    sentiments = list() 
+    for prompt in prompts:
+      generated_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)
+      # continuation_label
+      sentiment_result = sentiment_model(generated_text[len(prompt):])
+      if sentiment_result[0]["label"] == "POSITIVE":
+        sentiments.append(1)
+      else: 
+        sentiments.append(0)
+    grid[layer, coeff-1] = sum(sentiments)
+  return grid
 
 # process in batch
 class ModelDataset(Dataset):
-    def __init__(self, file_path):
-        with open(file_path, 'rb') as f:
-            self.data = json.load(f)
-        self.n_samples = len(self.data)
+  def __init__(self, file_path):
+    with open(file_path, 'rb') as f:
+      self.data = json.load(f)
+    self.n_samples = len(self.data)
 
-    def __getitem__(self, index):
-        return self.data[index]
+  def __getitem__(self, index):
+    return self.data[index]
 
-    def __len__(self):
-        return self.n_samples
+  def __len__(self):
+    return self.n_samples
 
 def batch_steer(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coeff, seed, sampling_kwargs):
-    """
-    prompts: a list of strings
-    return: a panda dataframe with two columns, "prompt", and 
-    "generated_text": the prompt and the continuing steered generated text
-    """
-    df = pd.DataFrame({"prompt": prompts_batch})
-    # get the steering vector
-    tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, steer_model)
-    act_add = tokens2resid_pre(tokens_add, layer, steer_model)
-    act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
-    act_diff = act_add - act_sub
-    act_diff = act_diff * coeff
+  """
+  prompts: a list of strings
+  return: a panda dataframe with two columns, "prompt", and 
+  "generated_text": the prompt and the continuing steered generated text
+  """
+  df = pd.DataFrame({"prompt": prompts_batch})
+  # get the steering vector
+  act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
 
-    def add_activation(activation, hook):
-        if activation.shape[1] == 1: return
-        prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
-        try:
-            activation[:, :steering_dim, :] += act_diff
-        except:
-            print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+  def add_activation(activation, hook):
+    if activation.shape[1] == 1: return
+    prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+    try:
+      activation[:, :steering_dim, :] += act_diff
+    except:
+      print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
 
-    # generate with the steering vector
-    editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-    generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
-    df["generated_text"] = generated_text
-    return df
+  # generate with the steering vector
+  editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+  generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
+  df["generated_text"] = generated_text
+  return df
+
+def batch_steer1(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coeff, seed, sampling_kwargs):
+  """
+  pad act_diff to the same as activation.shape[0] 
+  """
+  df = pd.DataFrame({"prompt": prompts_batch})
+  # get the steering vector
+  act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+  # gemini
+  call_count = 0 
+
+  def add_activation(activation, hook):
+    nonlocal call_count
+    if activation.shape[1] == 1 or call_count > 0: 
+      print("call_count", call_count, "activation.shape[1], ", activation.shape[1])
+      return
+    prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+    print("activation.shape[1], ", activation.shape[1])
+    try:
+      activation[:, :steering_dim, :] += act_diff
+      call_count += 1
+    except:
+      print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+
+  # generate with the steering vector
+  editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+  generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
+  df["generated_text"] = generated_text
+  return df
+
+def batch_steer2(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coeff, seed, sampling_kwargs):
+  """
+  use the same steering vector to steer prompts one by one, save in a df
+  """
+  df = pd.DataFrame({"prompt": prompts_batch})
+  # get the steering vector
+  act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+  print("pad act_diff to the same as activation.shape[1]. before padding: act_diff:", act_diff.shape)
+  print(act_diff)
+  act_diff = torch.nn.functional.pad(input=act_diff, pad=(0, 0, 0, 30, 0, 0), mode='constant', value=0)
+  print("after padding:", act_diff.shape)
+  print(act_diff)
+
+  def add_activation(activation, hook):
+    if activation.shape[1] == 1: return
+    prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+    try:
+      activation += act_diff
+    except:
+      print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+
+  # generate with the steering vector
+  editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+  generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
+  df["generated_text"] = generated_text
+  return df
+
+def batch_steer3(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coeff, seed, sampling_kwargs):
+  """
+  pad act_diff to the same as activation.shape
+  """
+  df = pd.DataFrame({"prompt": prompts_batch})
+  # get the steering vector
+  act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+  print("pad act_diff to the same as activation.shape. before padding: act_diff:", act_diff.shape)
+  print(act_diff)
+  act_diff = torch.nn.functional.pad(input=act_diff, pad=(0, 0, 0, 30, 0, 0), mode='constant', value=0).repeat(len(prompts_batch), 1, 1)
+  print("after padding:", act_diff.shape)
+  print(act_diff)
+
+  def add_activation(activation, hook):
+    if activation.shape[1] == 1: return
+    prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+    try:
+      activation += act_diff
+    except:
+      print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+
+  # generate with the steering vector
+  editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+  generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
+  df["generated_text"] = generated_text
+  return df
 
 def batch_base_generate(prompts, model, seed, kwargs):
-    """
-    prompts: a list of strings
-    return: a panda dataframe with two columns, "prompt", and 
-    "generated_text": the prompt and the continuing unsteered generated text
-    """
-    df = pd.DataFrame({"prompt": prompts})
-    torch.manual_seed(seed)
-    generated_text = model.generate(
-        input=prompts,
-        max_new_tokens=max_new_tokens, 
-        do_sample=True, 
-        **kwargs
-    )
-    df["generated_text"] = generated_text
-    return df
+  """
+  prompts: a list of strings
+  return: a panda dataframe with two columns, "prompt", and 
+  "generated_text": the prompt and the continuing unsteered generated text
+  """
+  df = pd.DataFrame({"prompt": prompts})
+  torch.manual_seed(seed)
+  generated_text = model.generate(
+    input=prompts,
+    max_new_tokens=max_new_tokens, 
+    do_sample=True, 
+    **kwargs
+  )
+  df["generated_text"] = generated_text
+  return df
 
 def trim_text(row):
-    """
-    helper function to be applied to df 
-    to get the continuation without the prompts
-    """
-    gen_text = row["generated_text"]
-    prompt = row["prompt"]
-    return gen_text[len(prompt):]
+  """
+  helper function to be applied to df 
+  to get the continuation without the prompts
+  """
+  gen_text = row["generated_text"]
+  prompt = row["prompt"]
+  return gen_text[len(prompt):]
 
 def remove_prompt(df):
-    """
-    df contains two columns: "prompt", and 
-    "generated_text": the prompt and the continuing generated text
-    return the same df but with the prompt removed from "generated_text"
-    """
-    continuation = df.apply(trim_text, axis=1)
-    df["generated_text"] = continuation
-    return df
+  """
+  df contains two columns: "prompt", and 
+  "generated_text": the prompt and the continuing generated text
+  return the same df but with the prompt removed from "generated_text"
+  """
+  continuation = df.apply(trim_text, axis=1)
+  df["generated_text"] = continuation
+  return df
 
 def map_labels(row):
-    """
-    helper function to be applied to df
-    to map text sentiment string labels to 0/1
-    """
-    if row["label"] == "NEGATIVE":
-        return 0
-    if row["label"] == "POSITIVE":
-        return 1
+  """
+  helper function to be applied to df
+  to map text sentiment string labels to 0/1
+  """
+  if row["label"] == "NEGATIVE":
+    return 0
+  if row["label"] == "POSITIVE":
+    return 1
 
 def batch_sentiment(df, sentiment_model, keep_score):
-    """
-    df contains two columns: "prompt", and 
-    "generated_text": the continuing generated text
-    sentiment analyse in batch and map the sentiment label to 0/1
-    if keep_score is True, the score is included in the returned df
-    return a df with additional column(s)
-    """
-    sentiment_batch = sentiment_model(df["generated_text"].values.tolist())
-    sentiment_df = pd.DataFrame(sentiment_batch)
-    sentiment_labels = sentiment_df.apply(map_labels, axis=1)
-    df["continuation_label"] = sentiment_labels
-    if keep_score:
-        df["sentiment_score"] = sentiment_df["score"]
-    return df
+  """
+  df contains two columns: "prompt", and 
+  "generated_text": the continuing generated text
+  sentiment analyse in batch and map the sentiment label to 0/1
+  if keep_score is True, the score is included in the returned df
+  return a df with additional column(s)
+  """
+  sentiment_batch = sentiment_model(df["generated_text"].values.tolist())
+  sentiment_df = pd.DataFrame(sentiment_batch)
+  sentiment_labels = sentiment_df.apply(map_labels, axis=1)
+  df["continuation_label"] = sentiment_labels
+  if keep_score:
+    df["sentiment_score"] = sentiment_df["score"]
+  return df
 
 def batch_similarity(df, relevance_model):
-    """
-    df contains two columns: "prompt", and 
-    "generated_text": the continuing generated text
-    cosine_similarity calculated in batch
-    return a df with an additional column "similarity"
-    """
-    embedding_prompt_batch = relevance_model.encode(df["prompt"])
-    embedding_generated_text_batch = relevance_model.encode(df["generated_text"])
-    relevance_batch = cosine_similarity(embedding_prompt_batch,   # .reshape(1, -1)
-                                        embedding_generated_text_batch)
-    similarity = relevance_batch.diagonal().reshape(relevance_batch.shape[0], 1)
-    df["similarity"] = similarity
-    return df
+  """
+  df contains two columns: "prompt", and 
+  "generated_text": the continuing generated text
+  cosine_similarity calculated in batch
+  return a df with an additional column "similarity"
+  """
+  embedding_prompt_batch = relevance_model.encode(df["prompt"])
+  embedding_generated_text_batch = relevance_model.encode(df["generated_text"])
+  relevance_batch = cosine_similarity(embedding_prompt_batch,  # .reshape(1, -1)
+                    embedding_generated_text_batch)
+  similarity = relevance_batch.diagonal().reshape(relevance_batch.shape[0], 1)
+  df["similarity"] = similarity
+  return df
 
 def pipeline_base_batch(prompts, base_model, sentiment_model, seed, sampling_kwargs, keep_score=False, relevance_model=None):
-    df = batch_base_generate(prompts, base_model, seed, sampling_kwargs)
-    df = remove_prompt(df)
-    df = batch_sentiment(df, sentiment_model, keep_score)
-    if relevance_model:
-        df = batch_similarity(df, relevance_model)
-    return df
+  df = batch_base_generate(prompts, base_model, seed, sampling_kwargs)
+  df = remove_prompt(df)
+  df = batch_sentiment(df, sentiment_model, keep_score)
+  if relevance_model:
+    df = batch_similarity(df, relevance_model)
+  return df
 
 def pipeline_steer_batch(prompt_add, prompt_sub, prompts_batch, steer_model, sentiment_model, layer, coeff, seed, sampling_kwargs, keep_score=False, relevance_model=None):
-    """
-    with the given batch of prompts, steer, sentiment, and cosine similarity
-    return a panda dataframe with columns: 
-        prompt, generated_text (without the prompt), continuation_label, similarity
-    this df is ready be concat to the results from the previous batches
-    """
-    df = batch_steer(prompt_add=prompt_add, 
-                     prompt_sub=prompt_sub, 
-                     prompts_batch=prompts_batch, 
-                     steer_model=steer_model, 
-                     layer=layer, 
-                     coeff=coeff, 
-                     seed=seed, 
-                     sampling_kwargs=sampling_kwargs)
-    # slice to replace the generated text (prompt+continuation) with continuation
-    df = remove_prompt(df)
-    # batch sentiment 
-    df = batch_sentiment(df, sentiment_model, keep_score)
-    # batch cosine
-    if relevance_model:
-        df = batch_similarity(df, relevance_model)
-    return df
+  """
+  with the given batch of prompts, steer, sentiment, and cosine similarity
+  return a panda dataframe with columns: 
+    prompt, generated_text (without the prompt), continuation_label, similarity
+  this df is ready be concat to the results from the previous batches
+  """
+  df = batch_steer(prompt_add=prompt_add, 
+           prompt_sub=prompt_sub, 
+           prompts_batch=prompts_batch, 
+           steer_model=steer_model, 
+           layer=layer, 
+           coeff=coeff, 
+           seed=seed, 
+           sampling_kwargs=sampling_kwargs)
+  # slice to replace the generated text (prompt+continuation) with continuation
+  df = remove_prompt(df)
+  # batch sentiment 
+  df = batch_sentiment(df, sentiment_model, keep_score)
+  # batch cosine
+  if relevance_model:
+    df = batch_similarity(df, relevance_model)
+  return df
+
+def pipeline_steer_batch1(prompt_add, prompt_sub, prompts_batch, steer_model, sentiment_model, layer, coeff, seed, sampling_kwargs, keep_score=False, relevance_model=None):
+  """
+  with the given batch of prompts, steer, sentiment, and cosine similarity
+  return a panda dataframe with columns: 
+    prompt, generated_text (without the prompt), continuation_label, similarity
+  this df is ready be concat to the results from the previous batches
+  """
+  df = batch_steer1(prompt_add=prompt_add, 
+           prompt_sub=prompt_sub, 
+           prompts_batch=prompts_batch, 
+           steer_model=steer_model, 
+           layer=layer, 
+           coeff=coeff, 
+           seed=seed, 
+           sampling_kwargs=sampling_kwargs)
+  # slice to replace the generated text (prompt+continuation) with continuation
+  df = remove_prompt(df)
+  # batch sentiment 
+  df = batch_sentiment(df, sentiment_model, keep_score)
+  # batch cosine
+  if relevance_model:
+    df = batch_similarity(df, relevance_model)
+  return df
+
+def pipeline_steer2batch(prompt_add, prompt_sub, prompts_batch, steer_model, sentiment_model, layer, coeff, seed, sampling_kwargs, keep_score=False, relevance_model=None):
+  """
+  with the given batch of prompts, steer one by one into a df
+  sentiment in batch, and cosine similarity
+  return a panda dataframe with columns: 
+    prompt, generated_text (without the prompt), continuation_label, similarity
+  this df is ready be concat to the results from the previous batches
+  """
+  df = steer2batch(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coeff, seed, sampling_kwargs)
+  # slice to replace the generated text (prompt+continuation) with continuation
+  df = remove_prompt(df)
+  # batch sentiment 
+  df = batch_sentiment(df, sentiment_model, keep_score)
+  # batch cosine
+  if relevance_model:
+    df = batch_similarity(df, relevance_model)
+  return df
+
+def pipeline_steer_batch3(prompt_add, prompt_sub, prompts_batch, steer_model, sentiment_model, layer, coeff, seed, sampling_kwargs, keep_score=False, relevance_model=None):
+  """
+  with the given batch of prompts, steer, sentiment, and cosine similarity
+  return a panda dataframe with columns: 
+    prompt, generated_text (without the prompt), continuation_label, similarity
+  this df is ready be concat to the results from the previous batches
+  """
+  df = batch_steer3(prompt_add=prompt_add, 
+           prompt_sub=prompt_sub, 
+           prompts_batch=prompts_batch, 
+           steer_model=steer_model, 
+           layer=layer, 
+           coeff=coeff, 
+           seed=seed, 
+           sampling_kwargs=sampling_kwargs)
+  # slice to replace the generated text (prompt+continuation) with continuation
+  df = remove_prompt(df)
+  # batch sentiment 
+  df = batch_sentiment(df, sentiment_model, keep_score)
+  # batch cosine
+  if relevance_model:
+    df = batch_similarity(df, relevance_model)
+  return df
+
 
 if __name__ == '__main__':
-    layer, coeff, seed = 6, 5, 0
-    sampling_kwargs = dict(temperature=1.0, top_p=1.0, freq_penalty=0.0)
-    
+  layer, coeff, seed = 6, 5, 0
+  sampling_kwargs = dict(temperature=1.0, top_p=1.0, freq_penalty=0.0)
+  
