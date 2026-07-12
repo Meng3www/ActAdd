@@ -3,6 +3,7 @@ from config import *
 # from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
 from utils_aa import steer_single, load_data
+import time
 import transformer_lens.utilities as utils
 
 
@@ -22,6 +23,7 @@ if __name__ == '__main__':
     # model_relevance = SentenceTransformer(path_all_MiniLM)
     # print("relevance model loaded")
     # load data
+    start = time.time()
     prompt_add, prompt_sub, source_file = " love", " hate", "imdb_neg_llama.json"
     prompts = load_data(source_file, 10)
     steer_single(prompt_add=prompt_add,   
@@ -35,3 +37,4 @@ if __name__ == '__main__':
                 seed=seed, 
                 sampling_kwargs=sampling_kwargs, 
                 file_name="neg2pos_llama_steered")
+    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
