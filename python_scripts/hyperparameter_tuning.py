@@ -5,10 +5,9 @@ alternatives: RandomizedSearchCV and Bayesian Optimization
 """
 
 from config import *
-from pprint import pprint
 from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
-from utils_aa import ht_count, load_data, pipeline_base_batch, save2file, pipeline_steer_batch, pipeline_steer2batch 
+from utils_aa import ht_count, load_data, pipeline_base_batch, save2file 
 import time
 import torch
 import transformer_lens.utilities as utils
@@ -71,74 +70,6 @@ def baseline(generate_model, sentiment_model, data_file_path, out_file):
     df_dict = base_df.to_dict(orient="records")
     save2file(df_dict, out_file) 
 
-def qualitative_batch_steer(prompt_add, prompt_sub, steer_model, sentiment_model, data_file_path, paras):
-    """
-    paras: list of (layer, coeff) with which the 10 prompts will be steered
-    {(layer, coeff): {count_pos: sum(df["continuation_label"]),
-                     score_0: mean_score_neg,
-                     score_1: mean_score_pos,
-                     results: [{}*10]}, ...}
-    """
-    ret_dict = dict()
-    start = time.time()
-    prompts = load_data(data_file_path, num_samples)
-    for layer, coeff in paras:
-        print(f"layer={layer}, coeff={coeff}")
-        df = pipeline_steer_batch(prompt_add=prompt_add, 
-                                prompt_sub=prompt_sub, 
-                                prompts_batch=prompts, 
-                                steer_model=steer_model, 
-                                sentiment_model=sentiment_model, 
-                                layer=layer, 
-                                coeff=coeff, 
-                                seed=seed, 
-                                sampling_kwargs=sampling_kwargs, 
-                                keep_score=True, 
-                                relevance_model=None)
-        para_dict = {"count_pos": sum(df["continuation_label"])}
-        means = df["sentiment_score"].groupby(df["continuation_label"]).mean()
-        para_dict["score_0"] = means[0]
-        para_dict["score_1"] = means[1]
-        para_dict["result"] = df.to_dict(orient="records")
-        ret_dict[(layer, coeff)] = para_dict
-        print(f"count_pos: {para_dict["count_pos"]}")
-
-    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
-    return ret_dict
-
-def qualitative_single_steer(prompt_add, prompt_sub, steer_model, sentiment_model, data_file_path, paras):
-    """
-    paras: list of (layer, coeff) with which the 10 prompts will be steered
-    {(layer, coeff): {count_pos: sum(df["continuation_label"]),
-                     score_0: mean_score_neg,
-                     score_1: mean_score_pos,
-                     results: [{}*10]}, ...}
-    """
-    ret_dict = dict()
-    start = time.time()
-    prompts = load_data(data_file_path, num_samples)
-    for layer, coeff in paras:
-        print(f"layer={layer}, coeff={coeff}")
-        df = pipeline_steer2batch(prompt_add=prompt_add, 
-                                                            prompt_sub=prompt_sub, 
-                                                            prompts_batch=prompts, 
-                                                            steer_model=steer_model, 
-                                                            sentiment_model=sentiment_model, 
-                                                            layer=layer, 
-                                                            coeff=coeff, 
-                                                            seed=seed, 
-                                                            sampling_kwargs=sampling_kwargs, 
-                                                            keep_score=True, 
-                                                            relevance_model=None)
-        para_dict = {"count_pos": sum(df["continuation_label"])}
-        means = df["sentiment_score"].groupby(df["continuation_label"]).mean()
-        para_dict["score_0"] = means[0]
-        para_dict["score_1"] = means[1]
-        para_dict["result"] = df.to_dict(orient="records")
-        ret_dict[(layer, coeff)] = para_dict
-        print(f"count_pos: {para_dict["count_pos"]}")
-    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
-    return ret_dict
 
 if __name__ == '__main__':
     model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
@@ -159,18 +90,11 @@ if __name__ == '__main__':
     quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, data_file_path, "qualitative_llama_neg")
 
     # ret_dict_single = qualitative_single_steer(prompt_add=prompt_add, 
-    #                                                                                        prompt_sub=prompt_sub, 
-    #                                                                                        steer_model=model_generate, 
-    #                                                                                        sentiment_model=model_sentiment, 
-    #                                                                                        data_file_path=data_file_path, 
-    #                                                                                        paras=neg2pos_paras)
+                                                # prompt_sub=prompt_sub, 
+                                                # steer_model=model_generate, 
+                                                # sentiment_model=model_sentiment, 
+                                                # data_file_path=data_file_path, 
+                                                # paras=neg2pos_paras)
     
-    # ret_dict = qualitative_batch_steer(prompt_add=prompt_add, 
-    #                         prompt_sub=prompt_sub,
-    #                         steer_model=model_generate, 
-    #                         sentiment_model=model_sentiment, 
-    #                         data_file_path=data_file_path, 
-    #                         paras=neg2pos_paras)
-    # print("baseline")
     # baseline(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
 

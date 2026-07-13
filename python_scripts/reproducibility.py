@@ -1,6 +1,15 @@
-from utils_aa import get_steering_vec, hooked_generate, remove_prompt, batch_sentiment, batch_similarity
+from config import *
+from transformers import pipeline
+from transformer_lens.model_bridge import TransformerBridge
+from utils_aa import get_steering_vec, hooked_generate, remove_prompt, batch_sentiment, batch_similarity, load_data, pipeline_steer2batch, pipeline_steer_batch, save2file
+import time
 import pandas as pd
 import torch
+import transformer_lens.utilities as utils
+
+
+device = utils.get_device()
+print("device:", device)
 
 
 def batch_steer(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coeff, seed, sampling_kwargs):
@@ -158,6 +167,275 @@ def pipeline_steer_batch3(prompt_add, prompt_sub, prompts_batch, steer_model, se
         df = batch_similarity(df, relevance_model)
     return df
 
+def qualitative_batch_steer(prompt_add, prompt_sub, steer_model, sentiment_model, data_file_path, paras):
+    """
+    paras: list of (layer, coeff) with which the 10 prompts will be steered
+    {(layer, coeff): {count_pos: sum(df["continuation_label"]),
+                     score_0: mean_score_neg,
+                     score_1: mean_score_pos,
+                     results: [{}*10]}, ...}
+    """
+    ret_dict = dict()
+    start = time.time()
+    prompts = load_data(data_file_path, num_samples)
+    for layer, coeff in paras:
+        print(f"layer={layer}, coeff={coeff}")
+        df = pipeline_steer_batch(prompt_add=prompt_add, 
+                                prompt_sub=prompt_sub, 
+                                prompts_batch=prompts, 
+                                steer_model=steer_model, 
+                                sentiment_model=sentiment_model, 
+                                layer=layer, 
+                                coeff=coeff, 
+                                seed=seed, 
+                                sampling_kwargs=sampling_kwargs, 
+                                keep_score=True, 
+                                relevance_model=None)
+        para_dict = {"count_pos": sum(df["continuation_label"])}
+        means = df["sentiment_score"].groupby(df["continuation_label"]).mean()
+        para_dict["score_0"] = means[0]
+        para_dict["score_1"] = means[1]
+        para_dict["result"] = df.to_dict(orient="records")
+        ret_dict[(layer, coeff)] = para_dict
+        print(f"count_pos: {para_dict["count_pos"]}")
+
+    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
+    return ret_dict
+
+def qualitative_single_steer(prompt_add, prompt_sub, steer_model, sentiment_model, data_file_path, paras):
+    """
+    paras: list of (layer, coeff) with which the 10 prompts will be steered
+    {(layer, coeff): {count_pos: sum(df["continuation_label"]),
+                     score_0: mean_score_neg,
+                     score_1: mean_score_pos,
+                     results: [{}*10]}, ...}
+    """
+    ret_dict = dict()
+    start = time.time()
+    prompts = load_data(data_file_path, num_samples)
+    for layer, coeff in paras:
+        print(f"layer={layer}, coeff={coeff}")
+        df = pipeline_steer2batch(prompt_add=prompt_add, 
+                                prompt_sub=prompt_sub, 
+                                prompts_batch=prompts, 
+                                steer_model=steer_model, 
+                                sentiment_model=sentiment_model, 
+                                layer=layer, 
+                                coeff=coeff, 
+                                seed=seed, 
+                                sampling_kwargs=sampling_kwargs, 
+                                keep_score=True, 
+                                relevance_model=None)
+        para_dict = {"count_pos": sum(df["continuation_label"])}
+        means = df["sentiment_score"].groupby(df["continuation_label"]).mean()
+        para_dict["score_0"] = means[0]
+        para_dict["score_1"] = means[1]
+        para_dict["result"] = df.to_dict(orient="records")
+        ret_dict[(layer, coeff)] = para_dict
+        print(f"count_pos: {para_dict["count_pos"]}")
+    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
+    return ret_dict
+
+def reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, file_name="reproduce_layer_single"):
+    """
+    reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
+    each prompt is steered one by one, and with fresh act_diff and editing_hooks
+    the results are saved in a json file with coeff as the key, [{prompt, gen_text}] as the value
+    """
+    print("reproduce_layer_single, no re-use")
+    dict_all = dict()
+    start = time.time()
+    for coeff in range(1, max_coeff+1):
+        print(f"coeff={coeff}")
+        list_prompted = list()
+        for prompt in prompts:
+            dict_prompt = {"prompt": prompt}
+            act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+            def add_activation(activation, hook):
+                if activation.shape[1] == 1: return
+                prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+                try:
+                    activation[:, :steering_dim, :] += act_diff
+                except:
+                    print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+            editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+            for prompt in prompts:
+                gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
+            dict_prompt["generated_text"] = gen_text
+            list_prompted.append(dict_prompt)
+        dict_all[coeff] = list_prompted
+    save2file(dict_all, file_name)
+    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
+
+def reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, file_name="reproduce_layer_actdiff_single_inner"):
+    """
+    reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
+    each prompt is steered one by one, and with fresh editing_hooks
+    within the same coeff, the act_diff is re-used
+    the results are saved in a json file with coeff as the key, [{prompt, gen_text}] as the value
+    """
+    print("reproduce_layer_actdiff_single_inner, re-using act_diff for each coeff")
+    dict_all = dict()
+    start = time.time()
+    for coeff in range(1, max_coeff+1):
+        print(f"coeff={coeff}")
+        act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+        list_prompted = list()
+        for prompt in prompts:
+            dict_prompt = {"prompt": prompt}
+            def add_activation(activation, hook):
+                if activation.shape[1] == 1: return
+                prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+                try:
+                    activation[:, :steering_dim, :] += act_diff
+                except:
+                    print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+            editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+            for prompt in prompts:
+                gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
+            dict_prompt["generated_text"] = gen_text
+            list_prompted.append(dict_prompt)
+        dict_all[coeff] = list_prompted
+    save2file(dict_all, file_name)
+    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
+
+def reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, file_name="reproduce_layer_actdiff_single_outer"):
+    """
+    reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
+    each prompt is steered one by one, and with fresh editing_hooks
+    the act_diff is re-used throughout
+    the results are saved in a json file with coeff as the key, [{prompt, gen_text}] as the value
+    """
+    print("reproduce_layer_actdiff_single_outer, re-using act_diff for all generation")
+    dict_all = dict()
+    start = time.time()
+    act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+    for coeff in range(1, max_coeff+1):
+        print(f"coeff={coeff}")
+        list_prompted = list()
+        for prompt in prompts:
+            dict_prompt = {"prompt": prompt}
+            def add_activation(activation, hook):
+                if activation.shape[1] == 1: return
+                prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+                try:
+                    activation[:, :steering_dim, :] += act_diff
+                except:
+                    print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+            editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+            for prompt in prompts:
+                gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
+            dict_prompt["generated_text"] = gen_text
+            list_prompted.append(dict_prompt)
+        dict_all[coeff] = list_prompted
+    save2file(dict_all, file_name)
+    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
+
+def reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, file_name="reproduce_layer_inner_single"):
+    """
+    reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
+    each prompt is steered one by one
+    within the same coeff, both variables are re-used
+    the results are saved in a json file with coeff as the key, [{prompt, gen_text}] as the value
+    """
+    print("reproduce_layer_inner_single, re-use both parameters in each coeff")
+    dict_all = dict()
+    start = time.time()
+    for coeff in range(1, max_coeff+1):
+        print(f"coeff={coeff}")
+        list_prompted = list()
+        act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+        def add_activation(activation, hook):
+            if activation.shape[1] == 1: return
+            prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+            try:
+                activation[:, :steering_dim, :] += act_diff
+            except:
+                print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+        editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+        for prompt in prompts:
+            dict_prompt = {"prompt": prompt}
+            for prompt in prompts:
+                gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
+            dict_prompt["generated_text"] = gen_text
+            list_prompted.append(dict_prompt)
+        dict_all[coeff] = list_prompted
+    save2file(dict_all, file_name)
+    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
+
+def reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, file_name="reproduce_layer_batch"):
+    """
+    reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
+    all prompts are steered in a batch, and with fresh act_diff and editing_hooks
+    this is equivalent to recycling both act_diff and editing_hooks in the inner loop
+    the results are saved in a json file with coeff as the key, [{prompt, gen_text}] as the value
+    """
+    print("reproduce_layer_batch")
+    dict_all = dict()
+    start = time.time()
+    for coeff in range(1, max_coeff+1):
+        print(f"coeff={coeff}")
+        df = batch_steer(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs)
+        df_dict = df.to_dict(orient="records")
+        dict_all[coeff] = df_dict
+    save2file(dict_all, file_name)
+    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
+
+def reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, file_name="reproduce_layer_actdiff_batch_outer"):
+    """
+    reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
+    all prompts are steered in batch, and with fresh editing_hooks
+    the act_diff is re-used throughout
+    the results are saved in a json file with coeff as the key, [{prompt, gen_text}] as the value
+    """
+    print("reproduce_layer_actdiff_batch, act_diff is re-used throughout")
+    dict_all = dict()
+    start = time.time()
+    act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+    for coeff in range(1, max_coeff+1):
+        print(f"coeff={coeff}")
+        def add_activation(activation, hook):
+            if activation.shape[1] == 1: return
+            prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+            try:
+                activation[:, :steering_dim, :] += act_diff
+            except:
+                print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+        # generate with the steering vector
+        editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+        generated_text = hooked_generate(prompts, editing_hooks, steer_model, seed, **sampling_kwargs)
+        df = pd.DataFrame({"prompt": prompts})
+        df["generated_text"] = generated_text
+        df_dict = df.to_dict(orient="records")
+        dict_all[coeff] = df_dict
+    save2file(dict_all, file_name)
+    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
+
+def test_prod(prompt_add, prompt_sub, steer_model, layer, max_coeff, seed, sampling_kwargs, input_file_path):
+    prompts = load_data(input_file_path, num_samples)
+    reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+
 
 if __name__ == '__main__':
-    pass
+    model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
+    print(f"baseline generating model loaded to {device}")
+    # model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
+    # print("sentiment model loaded")
+    prompt_add, prompt_sub, input_file_path, layer = " love", " hate", "imdb_neg_llama.json", 10
+    # neg2pos_paras = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10), (0, 11), (0, 12), (0, 13), (0, 14)]
+    # ret_dict = qualitative_batch_steer(prompt_add=prompt_add, 
+    #                         prompt_sub=prompt_sub,
+    #                         steer_model=model_generate, 
+    #                         sentiment_model=model_sentiment, 
+    #                         input_file_path=input_file_path, 
+    #                         paras=neg2pos_paras)
+    # print(ret_dict)
+
+    test_prod(prompt_add, prompt_sub, model_generate, layer, max_coeff, seed, sampling_kwargs, input_file_path)
+
+    

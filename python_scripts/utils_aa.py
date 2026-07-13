@@ -5,7 +5,7 @@ import random
 import torch
 from config import *
 from sklearn.metrics.pairwise import cosine_similarity
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
 
 def reset_seed(seed=seed):
@@ -35,7 +35,7 @@ def hooked_generate(prompts, editing_hooks, model, seed=0, **kwargs):
     """
     model: steering model
     """
-    reset_seed()
+    reset_seed(seed)
     with model.hooks(fwd_hooks=editing_hooks):
         result = model.generate(input=prompts, max_new_tokens=max_new_tokens, do_sample=True, **kwargs)
     return result
@@ -97,7 +97,7 @@ def steer2batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed
     df["generated_text"] = generated_texts
     return df
 
-def steer_single(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, file_name):
+def steer_single(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, file_name=""):
     """
     steering prompts one by one using the activation from `prompt_add-prompt_sub`
     the result is saved in json format in file_name
@@ -122,7 +122,8 @@ def steer_single(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, see
         steering_case["generated_text"] = generated_text 
         steered_all.append(steering_case)
     print(len(steered_all), " documents steered")
-    save2file(steered_all, file_name)
+    if file_name:
+        save2file(steered_all, file_name)
 
 def pipeline_steer_single(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, relevance_model, layer, coeff, seed, sampling_kwargs, file_name):
     """
@@ -245,83 +246,6 @@ def batch_steer(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coeff
     generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
     df["generated_text"] = generated_text
     return df
-    """
-    pad act_diff to the same as activation.shape[0] 
-    """
-    df = pd.DataFrame({"prompt": prompts_batch})
-    # get the steering vector
-    act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
-    # gemini
-    call_count = 0 
-
-    def add_activation(activation, hook):
-        nonlocal call_count
-        if activation.shape[1] == 1 or call_count > 0: 
-            print("call_count", call_count, "activation.shape, ", activation.shape)
-            return
-        prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
-        print("activation.shape, ", activation.shape)
-        try:
-            activation[:, :steering_dim, :] += act_diff
-            call_count += 1
-        except:
-            print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
-
-    # generate with the steering vector
-    editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-    generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
-    df["generated_text"] = generated_text
-    return df
-    """
-    use the same steering vector to steer prompts one by one, save in a df
-    """
-    df = pd.DataFrame({"prompt": prompts_batch})
-    # get the steering vector
-    act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
-    print("pad act_diff to the same as activation.shape[1]. before padding: act_diff:", act_diff.shape)
-    print(act_diff)
-    act_diff = torch.nn.functional.pad(input=act_diff, pad=(0, 0, 0, 30, 0, 0), mode='constant', value=0)
-    print("after padding:", act_diff.shape)
-    print(act_diff)
-
-    def add_activation(activation, hook):
-        if activation.shape[1] == 1: return
-        prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
-        try:
-            activation += act_diff
-        except:
-            print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
-
-    # generate with the steering vector
-    editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-    generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
-    df["generated_text"] = generated_text
-    return df
-    """
-    pad act_diff to the same as activation.shape
-    """
-    df = pd.DataFrame({"prompt": prompts_batch})
-    # get the steering vector
-    act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
-    print("pad act_diff to the same as activation.shape. before padding: act_diff:", act_diff.shape)
-    print(act_diff)
-    act_diff = torch.nn.functional.pad(input=act_diff, pad=(0, 0, 0, 30, 0, 0), mode='constant', value=0).repeat(len(prompts_batch), 1, 1)
-    print("after padding:", act_diff.shape)
-    print(act_diff)
-
-    def add_activation(activation, hook):
-        if activation.shape[1] == 1: return
-        prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
-        try:
-            activation += act_diff
-        except:
-            print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
-
-    # generate with the steering vector
-    editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-    generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
-    df["generated_text"] = generated_text
-    return df
 
 def batch_base_generate(prompts, model, seed, kwargs):
     """
@@ -330,7 +254,7 @@ def batch_base_generate(prompts, model, seed, kwargs):
     "generated_text": the prompt and the continuing unsteered generated text
     """
     df = pd.DataFrame({"prompt": prompts})
-    reset_seed()
+    reset_seed(seed)
     generated_text = model.generate(
         input=prompts,
         max_new_tokens=max_new_tokens, 

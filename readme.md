@@ -437,6 +437,19 @@ In the qualitative round to locate the hyperparameter, batch steering is experim
 
 but they all yield to the same results (in `../ignored_files/`). also tried steering prompts one by one, saved into a df, and then batch sentiment. also got different results from either single pipeline, or batch pipeline
 
+## reproducibility
+related to the previous subsection. during the reproducing with specific `layer` and `coeff`, different results are generated with the same random seeds. It is highly likely related to the re-using of `act_diff` and/or `editing_hooks`, given that 
+- within a layer the complete results (looping `coeff` from 1 to 20) are the same with the results in the hyper-parameter tuning results
+- if within a layer, `coeff` is not completely the same then the results will be different
+- in `ht_count`, the same base `act_diff` (before multiplying the coeff) is used throughout the whole layer, while the variable `editing_hooks` is created once every coeff
+
+to find out a proper way to guarantee re-producibility, the following loops need to be tested:
+- no re-using `act_diff` or `editing_hooks`, single or batch generate
+- reuse `act_diff` only, within the innerloop (coeff)/outerloop (layer), single or batch
+- reuse `editing_hooks`: only possible with reused `act_diff`
+    - re-use both at the inner loop
+    - re-use `act_diff` at outer loop and `editing_hooks` on the inner loop. same as `ht_count`
+
 # TODOs
 - heatmap on hype/senti/toxi
 - plot for main findings
