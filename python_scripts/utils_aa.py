@@ -5,7 +5,7 @@ import random
 import torch
 from config import *
 from sklearn.metrics.pairwise import cosine_similarity
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 
 def reset_seed(seed=seed):
@@ -68,7 +68,7 @@ def save2file(data2save, file_name, file_type="json"):
     """
     if file_type == "json":
         with open(f"{working_dir}{file_name}.json", "w") as f:
-            json.dump(data2save, f, skipkeys=True)
+            json.dump(data2save, f, skipkeys=True, indent=2)
         print(f"file saved as {working_dir}{file_name}.json")
     elif file_type == "parquet": # not convinient for qualitative tasks
         data2save.to_parquet(f"{working_dir}{file_name}.gzip", compression="gzip")
@@ -212,8 +212,8 @@ def ht_count(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, laye
 
 # process in batch
 class ModelDataset(Dataset):
-    def __init__(self, file_path):
-        with open(file_path, 'rb') as f:
+    def __init__(self, file_name):
+        with open(f"{working_dir}{file_name}", "rb") as f:
             self.data = json.load(f)
         self.n_samples = len(self.data)
 

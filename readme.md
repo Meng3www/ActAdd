@@ -443,12 +443,19 @@ related to the previous subsection. during the reproducing with specific `layer`
 - if within a layer, `coeff` is not completely the same then the results will be different
 - in `ht_count`, the same base `act_diff` (before multiplying the coeff) is used throughout the whole layer, while the variable `editing_hooks` is created once every coeff
 
-to find out a proper way to guarantee re-producibility, the following loops need to be tested:
+to find out a proper way to guarantee re-producibility, the following loops need to be tested at layer `10`:
 - no re-using `act_diff` or `editing_hooks`, single or batch generate
 - reuse `act_diff` only, within the innerloop (coeff)/outerloop (layer), single or batch
 - reuse `editing_hooks`: only possible with reused `act_diff`
     - re-use both at the inner loop
     - re-use `act_diff` at outer loop and `editing_hooks` on the inner loop. same as `ht_count`
+
+|reuse,loop,s/b| single | actdiff,inner,s |||||||
+| - | - | - | - | - | - | - | - | - |
+| single |||||||||
+| actdiff, inner, single |||||||||
+| Na, Na, single |||||||||
+| Na, Na, single |||||||||
 
 # TODOs
 - heatmap on hype/senti/toxi

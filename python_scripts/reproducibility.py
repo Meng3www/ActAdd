@@ -1,7 +1,7 @@
 from config import *
 from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
-from utils_aa import get_steering_vec, hooked_generate, remove_prompt, batch_sentiment, batch_similarity, load_data, pipeline_steer2batch, pipeline_steer_batch, save2file
+from utils_aa import get_steering_vec, hooked_generate, remove_prompt, batch_sentiment, batch_similarity, load_data, pipeline_steer2batch, pipeline_steer_batch, save2file, prompts2tokens, tokens2resid_pre
 import time
 import pandas as pd
 import torch
@@ -259,8 +259,7 @@ def reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, 
                 except:
                     print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
             editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-            for prompt in prompts:
-                gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
+            gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
             dict_prompt["generated_text"] = gen_text
             list_prompted.append(dict_prompt)
         dict_all[coeff] = list_prompted
@@ -291,8 +290,7 @@ def reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_
                 except:
                     print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
             editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-            for prompt in prompts:
-                gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
+            gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
             dict_prompt["generated_text"] = gen_text
             list_prompted.append(dict_prompt)
         dict_all[coeff] = list_prompted
@@ -303,18 +301,23 @@ def reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_
     """
     reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
     each prompt is steered one by one, and with fresh editing_hooks
-    the act_diff is re-used throughout
+    the act_diff(base) is re-used throughout
     the results are saved in a json file with coeff as the key, [{prompt, gen_text}] as the value
     """
     print("reproduce_layer_actdiff_single_outer, re-using act_diff for all generation")
     dict_all = dict()
     start = time.time()
-    act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+    # get the steering vector
+    tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, steer_model)
+    act_add = tokens2resid_pre(tokens_add, layer, steer_model)
+    act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
+    act_diff_base = act_add - act_sub
     for coeff in range(1, max_coeff+1):
         print(f"coeff={coeff}")
         list_prompted = list()
         for prompt in prompts:
             dict_prompt = {"prompt": prompt}
+            act_diff = act_diff_base * coeff     
             def add_activation(activation, hook):
                 if activation.shape[1] == 1: return
                 prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
@@ -323,8 +326,7 @@ def reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_
                 except:
                     print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
             editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-            for prompt in prompts:
-                gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
+            gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
             dict_prompt["generated_text"] = gen_text
             list_prompted.append(dict_prompt)
         dict_all[coeff] = list_prompted
@@ -355,8 +357,7 @@ def reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, l
         editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
         for prompt in prompts:
             dict_prompt = {"prompt": prompt}
-            for prompt in prompts:
-                gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
+            gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
             dict_prompt["generated_text"] = gen_text
             list_prompted.append(dict_prompt)
         dict_all[coeff] = list_prompted
@@ -391,9 +392,13 @@ def reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, 
     print("reproduce_layer_actdiff_batch, act_diff is re-used throughout")
     dict_all = dict()
     start = time.time()
-    act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+    tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, steer_model)
+    act_add = tokens2resid_pre(tokens_add, layer, steer_model)
+    act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
+    act_diff_base = act_add - act_sub
     for coeff in range(1, max_coeff+1):
         print(f"coeff={coeff}")
+        act_diff = act_diff_base * coeff     
         def add_activation(activation, hook):
             if activation.shape[1] == 1: return
             prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
@@ -413,12 +418,12 @@ def reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, 
 
 def test_prod(prompt_add, prompt_sub, steer_model, layer, max_coeff, seed, sampling_kwargs, input_file_path):
     prompts = load_data(input_file_path, num_samples)
-    reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
-    reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
-    reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
-    reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
-    reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
-    reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    # reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    # reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    # reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    # reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    # reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    # reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
 
 
 if __name__ == '__main__':
