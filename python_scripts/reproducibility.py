@@ -236,7 +236,7 @@ def qualitative_single_steer(prompt_add, prompt_sub, steer_model, sentiment_mode
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
     return ret_dict
 
-def reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, file_name="reproduce_layer_single"):
+def reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="reproduce_layer_single"):
     """
     reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
     each prompt is steered one by one, and with fresh act_diff and editing_hooks
@@ -245,7 +245,7 @@ def reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, 
     print("reproduce_layer_single, no re-use")
     dict_all = dict()
     start = time.time()
-    for coeff in range(1, max_coeff+1):
+    for coeff in range(min_coeff, max_coeff+1):
         print(f"coeff={coeff}")
         list_prompted = list()
         for prompt in prompts:
@@ -266,7 +266,7 @@ def reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, 
     save2file(dict_all, file_name)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
 
-def reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, file_name="reproduce_layer_actdiff_single_inner"):
+def reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="reproduce_layer_actdiff_single_inner"):
     """
     reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
     each prompt is steered one by one, and with fresh editing_hooks
@@ -276,7 +276,7 @@ def reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_
     print("reproduce_layer_actdiff_single_inner, re-using act_diff for each coeff")
     dict_all = dict()
     start = time.time()
-    for coeff in range(1, max_coeff+1):
+    for coeff in range(min_coeff, max_coeff+1):
         print(f"coeff={coeff}")
         act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
         list_prompted = list()
@@ -297,7 +297,7 @@ def reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_
     save2file(dict_all, file_name)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
 
-def reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, file_name="reproduce_layer_actdiff_single_outer"):
+def reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="reproduce_layer_actdiff_single_outer"):
     """
     reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
     each prompt is steered one by one, and with fresh editing_hooks
@@ -312,7 +312,7 @@ def reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_
     act_add = tokens2resid_pre(tokens_add, layer, steer_model)
     act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
     act_diff_base = act_add - act_sub
-    for coeff in range(1, max_coeff+1):
+    for coeff in range(min_coeff, max_coeff+1):
         print(f"coeff={coeff}")
         list_prompted = list()
         for prompt in prompts:
@@ -333,7 +333,7 @@ def reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_
     save2file(dict_all, file_name)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
 
-def reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, file_name="reproduce_layer_inner_single"):
+def reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="reproduce_layer_inner_single"):
     """
     reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
     each prompt is steered one by one
@@ -343,7 +343,7 @@ def reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, l
     print("reproduce_layer_inner_single, re-use both parameters in each coeff")
     dict_all = dict()
     start = time.time()
-    for coeff in range(1, max_coeff+1):
+    for coeff in range(min_coeff, max_coeff+1):
         print(f"coeff={coeff}")
         list_prompted = list()
         act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
@@ -364,7 +364,7 @@ def reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, l
     save2file(dict_all, file_name)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
 
-def reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, file_name="reproduce_layer_batch"):
+def reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="reproduce_layer_batch"):
     """
     reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
     all prompts are steered in a batch, and with fresh act_diff and editing_hooks
@@ -374,7 +374,7 @@ def reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, m
     print("reproduce_layer_batch")
     dict_all = dict()
     start = time.time()
-    for coeff in range(1, max_coeff+1):
+    for coeff in range(min_coeff, max_coeff+1):
         print(f"coeff={coeff}")
         df = batch_steer(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs)
         df_dict = df.to_dict(orient="records")
@@ -382,7 +382,7 @@ def reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, m
     save2file(dict_all, file_name)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
 
-def reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, file_name="reproduce_layer_actdiff_batch_outer"):
+def reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="reproduce_layer_actdiff_batch_outer"):
     """
     reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
     all prompts are steered in batch, and with fresh editing_hooks
@@ -396,7 +396,7 @@ def reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, 
     act_add = tokens2resid_pre(tokens_add, layer, steer_model)
     act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
     act_diff_base = act_add - act_sub
-    for coeff in range(1, max_coeff+1):
+    for coeff in range(min_coeff, max_coeff+1):
         print(f"coeff={coeff}")
         act_diff = act_diff_base * coeff     
         def add_activation(activation, hook):
@@ -416,15 +416,33 @@ def reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, 
     save2file(dict_all, file_name)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
 
-def test_prod(prompt_add, prompt_sub, steer_model, layer, max_coeff, seed, sampling_kwargs, input_file_path):
+def test_whole_layer(prompt_add, prompt_sub, steer_model, layer, max_coeff, seed, sampling_kwargs, input_file_path):
     prompts = load_data(input_file_path, num_samples)
-    # reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
-    # reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
-    # reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
-    # reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
-    # reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
-    # reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
 
+def test_specific(prompt_add, prompt_sub, steer_model, layer, coeff, seed, sampling_kwargs, input_file_path):
+    """
+    layer, coeff: the specific layer, coeff to be checked
+    """
+    prompts = load_data(input_file_path, num_samples)
+    reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_single")
+    reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_actdiff_single_inner")
+    reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_actdiff_single_outer")
+    reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_inner_single")
+    reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_batch")
+    reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_actdiff_batch")
+    prompts_subset = prompts[3:5] 
+    reproduce_layer_single(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_single")
+    reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_actdiff_single_inner")
+    reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_actdiff_single_outer")
+    reproduce_layer_inner_single(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_inner_single")
+    reproduce_layer_batch(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_batch")
+    reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_actdiff_batch")
 
 if __name__ == '__main__':
     model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
@@ -441,6 +459,7 @@ if __name__ == '__main__':
     #                         paras=neg2pos_paras)
     # print(ret_dict)
 
-    test_prod(prompt_add, prompt_sub, model_generate, layer, max_coeff, seed, sampling_kwargs, input_file_path)
+    # test_whole_layer(prompt_add, prompt_sub, model_generate, layer, max_coeff, seed, sampling_kwargs, input_file_path)
+    test_specific(prompt_add, prompt_sub, model_generate, layer, 10, seed, sampling_kwargs, input_file_path)
 
     

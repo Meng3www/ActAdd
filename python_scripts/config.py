@@ -8,5 +8,5 @@ seed = 0
 max_new_tokens = 64
 max_coeff = 20  # for hyperparameter tuning
 num_samples = 10  # for hyperparameter tuning
-batch_size=25  # batch process
+batch_size=25  # batch base generation
 sampling_kwargs = dict(temperature=1.0, top_p=1.0, freq_penalty=0.0)

@@ -450,12 +450,32 @@ to find out a proper way to guarantee re-producibility, the following loops need
     - re-use both at the inner loop
     - re-use `act_diff` at outer loop and `editing_hooks` on the inner loop. same as `ht_count`
 
-|reuse,loop,s/b| single | actdiff,inner,s |||||||
-| - | - | - | - | - | - | - | - | - |
-| single |||||||||
-| actdiff, inner, single |||||||||
-| Na, Na, single |||||||||
-| Na, Na, single |||||||||
+|reuse,loop,s/b|single|actdiff,in,s|actdiff,out,s|both,in,s|batch|actdiff,out,b|
+| ------------ | ---- | ---------- | ----------- | ------- | --- | ----------- |
+| single       | na   | same       | same        | same    | diff| diff        |
+| actdiff,in,s |      | na         | same        | same    | diff| diff        |
+| actdiff,out,s|      |            | na          | same    | diff| diff        |
+| both,in,s    |      |            |             | na      | diff| diff        |
+| batch        |      |            |             |         | na  | same        |
+| actdiff,out,b|      |            |             |         |     | na          |
+| time (mins)  | 7.25 | 6.64       | 6.58        | 6.62    | 0.99| 0.91        |
+
+- set `layer=10, coeff=10`, the same 10 prompts are steered. `single` case reproduces the previous results 
+
+|reuse,loop,s/b|single|actdiff,in,s|actdiff,out,s|both,in,s|batch|actdiff,out,b|
+| ------------ | ---- | ---------- | ----------- | ------- | --- | ----------- |
+| single       | na   | same       | same        | same    | diff| diff        |
+| actdiff,in,s |      | na         | same        | same    | diff| diff        |
+| actdiff,out,s|      |            | na          | same    | diff| diff        |
+| both,in,s    |      |            |             | na      | diff| diff        |
+| batch        |      |            |             |         | na  | same        |
+| actdiff,out,b|      |            |             |         |     | na          |
+| time (mins)  | 0.73 | 0.65       | 0.65        | 0.65    | 0.1 | 0.1         |
+
+- picking the subset [3, 4] of the 10 sample sentences, and the results are the same for single steering
+- for batch steering, a different batch size causes different generated text
+
+it seems that the result should be reproducible even if `act_diff` and/or `editing_hooks` are reused.
 
 # TODOs
 - heatmap on hype/senti/toxi
