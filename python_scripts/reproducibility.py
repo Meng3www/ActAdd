@@ -374,7 +374,7 @@ def reproduce_layer_ht_count(prompt_add, prompt_sub, prompts, steer_model, layer
     save2file(dict_all, file_name)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
 
-def reproduce_layer_ht_count_senti(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name=f"ht_count_senti"):
+def reproduce_layer_ht_count_senti(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name=f"reproduce_layer_ht_count_senti"):
     """
     """
     print(f"layer {layer}")
@@ -420,9 +420,10 @@ def reproduce_layer_ht_count_senti(prompt_add, prompt_sub, prompts, steer_model,
                 dict_prompt["continuation_label"] = 0
             list_prompted.append(dict_prompt)
         dict_all[coeff] = list_prompted
-        counts_all.appendsum(sentiments)
+        counts_all.append(sum(sentiments))
     save2file(dict_all, f"{file_name}_{layer}")
     print("number of positives: ", counts_all)
+    return counts_all
 
 def reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="reproduce_layer_inner_single"):
     """

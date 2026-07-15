@@ -71,15 +71,16 @@ def baseline(generate_model, sentiment_model, data_file_path, out_file):
     df_dict = base_df.to_dict(orient="records")
     save2file(df_dict, out_file) 
 
-def reprod_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, input_file_path):
+def reprod_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, input_file_path, output_file_name):
     prompts = load_data(input_file_path, num_samples)
     n_layers = steer_model.cfg.n_layers
     start = time.time()
-    for layer in range(10, 11):
-        reproduce_layer_ht_count_senti(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, max_coeff, seed, sampling_kwargs)
+    counts_all = list()
+    for layer in range(1, n_layers):
+        counts_layer = reproduce_layer_ht_count_senti(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, max_coeff, seed, sampling_kwargs, 1, output_file_name)
+        counts_all.append(counts_layer)
+    print(counts_all)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")    
-
-
 
 if __name__ == '__main__':
     model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
@@ -93,13 +94,12 @@ if __name__ == '__main__':
     # baseline(model_generate, model_sentiment, "imdb_pos_opt.json", "baseline_pos_opt_hpt")    
     # quantitative(model_generate, model_sentiment, "imdb_pos_opt.json")
     
-    # test qualitative for llama
-    prompt_add, prompt_sub, input_file_path = " love", " hate", "imdb_neg_llama.json"
-    # neg2pos_paras = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10), (0, 11), (0, 12), (0, 13), (0, 14)]
+    prompt_add, prompt_sub, input_file_path, output_file_name = " love", " hate", "imdb_neg_llama.json", "neg2pos_llama_hpt"
+    reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, )
+    prompt_add, prompt_sub, input_file_path, output_file_name = " hate", " love", "imdb_pos_llama.json", "pos2neg_llama_hpt"
+    reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, )
 
     # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg")
-
-    reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path)
     
     # baseline(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
 
