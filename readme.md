@@ -450,15 +450,15 @@ to find out a proper way to guarantee re-producibility, the following loops need
     - re-use both at the inner loop
     - re-use `act_diff` at outer loop and `editing_hooks` on the inner loop. same as `ht_count`
 
-|reuse,loop,s/b|single|actdiff,in,s|actdiff,out,s|both,in,s|batch|actdiff,out,b|
-| ------------ | ---- | ---------- | ----------- | ------- | --- | ----------- |
-| single       | na   | same       | same        | same    | diff| diff        |
-| actdiff,in,s |      | na         | same        | same    | diff| diff        |
-| actdiff,out,s|      |            | na          | same    | diff| diff        |
-| both,in,s    |      |            |             | na      | diff| diff        |
-| batch        |      |            |             |         | na  | same        |
-| actdiff,out,b|      |            |             |         |     | na          |
-| time (mins)  | 7.25 | 6.64       | 6.58        | 6.62    | 0.99| 0.91        |
+|reuse,loop,s/b|single|actdiff,in,s|actdiff,out,s|both,in,s|batch|actdiff,out,b|actdiff,out,hook,in,s|
+| ------------ | ---- | ---------- | ----------- | ------- | --- | ----------- | ------------------- |
+| single       | na   | same       | same        | same    | diff| diff        | same                |
+| actdiff,in,s |      | na         | same        | same    | diff| diff        | same                |
+| actdiff,out,s|      |            | na          | same    | diff| diff        | same                |
+| both,in,s    |      |            |             | na      | diff| diff        | same                |
+| batch        |      |            |             |         | na  | same        | diff                |
+| actdiff,out,b|      |            |             |         |     | na          | diff                |
+| time (mins)  | 7.25 | 6.64       | 6.58        | 6.62    | 0.99| 0.91        | 6.33                |
 
 - set `layer=10, coeff=10`, the same 10 prompts are steered. `single` case reproduces the previous results 
 
@@ -474,8 +474,11 @@ to find out a proper way to guarantee re-producibility, the following loops need
 
 - picking the subset [3, 4] of the 10 sample sentences, and the results are the same for single steering
 - for batch steering, a different batch size causes different generated text
+- **TODO** further testing with larger `coeff=19`
 
-it seems that the result should be reproducible even if `act_diff` and/or `editing_hooks` are reused.
+it seems that the result should be reproducible even if `act_diff` and/or `editing_hooks` are reused. but the results from the batch experiment are different from those with the same prompts steered with `pipeline_base_batch`
+
+- with the addition of sentiment, the same generation holds
 
 # TODOs
 - heatmap on hype/senti/toxi

@@ -7,6 +7,7 @@ alternatives: RandomizedSearchCV and Bayesian Optimization
 from config import *
 from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
+from reproducibility import reproduce_layer_ht_count_senti
 from utils_aa import ht_count, load_data, pipeline_base_batch, save2file 
 import time
 import torch
@@ -70,6 +71,15 @@ def baseline(generate_model, sentiment_model, data_file_path, out_file):
     df_dict = base_df.to_dict(orient="records")
     save2file(df_dict, out_file) 
 
+def reprod_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, input_file_path):
+    prompts = load_data(input_file_path, num_samples)
+    n_layers = steer_model.cfg.n_layers
+    start = time.time()
+    for layer in range(10, 11):
+        reproduce_layer_ht_count_senti(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, max_coeff, seed, sampling_kwargs)
+    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")    
+
+
 
 if __name__ == '__main__':
     model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
@@ -84,17 +94,12 @@ if __name__ == '__main__':
     # quantitative(model_generate, model_sentiment, "imdb_pos_opt.json")
     
     # test qualitative for llama
-    prompt_add, prompt_sub, data_file_path = " love", " hate", "imdb_neg_llama.json"
-    neg2pos_paras = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10), (0, 11), (0, 12), (0, 13), (0, 14)]
+    prompt_add, prompt_sub, input_file_path = " love", " hate", "imdb_neg_llama.json"
+    # neg2pos_paras = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10), (0, 11), (0, 12), (0, 13), (0, 14)]
 
-    quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, data_file_path, "qualitative_llama_neg")
+    # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg")
 
-    # ret_dict_single = qualitative_single_steer(prompt_add=prompt_add, 
-                                                # prompt_sub=prompt_sub, 
-                                                # steer_model=model_generate, 
-                                                # sentiment_model=model_sentiment, 
-                                                # data_file_path=data_file_path, 
-                                                # paras=neg2pos_paras)
+    reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path)
     
     # baseline(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
 

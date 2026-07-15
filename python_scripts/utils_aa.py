@@ -177,19 +177,19 @@ def ht_count(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, laye
     act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
     act_diff = act_add - act_sub
 
-    def add_activation(activation, hook):
-        if activation.shape[1] == 1: return
-        prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
-        try:
-            activation[:, :steering_dim, :] += act_diff
-        except:
-            print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
     dict_para = dict()    # a dictionary with the parameter as the key
     for coeff in range(1, max_coeff+1):
 #     for coeff in range(7, 9):
         print(f"layer={layer}, coeff={coeff}")
         act_diff = act_diff * coeff     
         # generate with the steering vector
+        def add_activation(activation, hook):
+            if activation.shape[1] == 1: return
+            prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+            try:
+                activation[:, :steering_dim, :] += act_diff
+            except:
+                print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
         editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
         sentiments = list() 
         val_para = list()    # the list of generated text as the value to be added to the dictionary
