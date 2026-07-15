@@ -469,7 +469,6 @@ def reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, 
     act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
     act_diff_base = act_add - act_sub
     for coeff in range(min_coeff, max_coeff+1):
-        print(f"coeff={coeff}")
         act_diff = act_diff_base * coeff     
         def add_activation(activation, hook):
             if activation.shape[1] == 1: return

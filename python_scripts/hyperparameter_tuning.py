@@ -76,15 +76,15 @@ def reprod_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, 
     n_layers = steer_model.cfg.n_layers
     start = time.time()
     counts_all = list()
-    for layer in range(1):
-        print(f"layer {layer}")
+    for layer in range(n_layers):
+        # print(f"layer {layer}")
         counts_layer = reproduce_layer_ht_count_senti(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, max_coeff, seed, sampling_kwargs, 1, output_file_name)
         counts_all.append(counts_layer)
     print(counts_all)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")    
 
 if __name__ == '__main__':
-    model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
+    model_generate = TransformerBridge.boot_transformers(path_opt, device=device)
     # model_steer.enable_compatibility_mode() # this line causes oom error
     print(f"baseline generating model loaded to {device}")
     # load sentiment model
@@ -95,11 +95,11 @@ if __name__ == '__main__':
     # baseline(model_generate, model_sentiment, "imdb_pos_opt.json", "baseline_pos_opt_hpt")    
     # quantitative(model_generate, model_sentiment, "imdb_pos_opt.json")
     
-    prompt_add, prompt_sub, input_file_path, output_file_name = " love", " hate", "imdb_neg_llama.json", "neg2pos_llama_hpt"
+    prompt_add, prompt_sub, input_file_path, output_file_name = " love", " hate", "imdb_neg_opt.json", "neg2pos_opt_hpt"
     reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
-    prompt_add, prompt_sub, input_file_path, output_file_name = " hate", " love", "imdb_pos_llama.json", "pos2neg_llama_hpt"
+    prompt_add, prompt_sub, input_file_path, output_file_name = " hate", " love", "imdb_pos_opt.json", "pos2neg_opt_hpt"
     reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
-    quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg_10")
+    # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg_10")
     
     # baseline(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
 
