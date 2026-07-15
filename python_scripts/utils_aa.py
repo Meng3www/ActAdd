@@ -175,13 +175,13 @@ def ht_count(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, laye
     tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, steer_model)
     act_add = tokens2resid_pre(tokens_add, layer, steer_model)
     act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
-    act_diff = act_add - act_sub
+    act_diff_base = act_add - act_sub
 
     dict_para = dict()    # a dictionary with the parameter as the key
     for coeff in range(1, max_coeff+1):
 #     for coeff in range(7, 9):
         print(f"layer={layer}, coeff={coeff}")
-        act_diff = act_diff * coeff     
+        act_diff = act_diff_base * coeff     
         # generate with the steering vector
         def add_activation(activation, hook):
             if activation.shape[1] == 1: return

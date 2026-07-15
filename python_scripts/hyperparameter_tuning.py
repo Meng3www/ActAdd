@@ -76,7 +76,8 @@ def reprod_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, 
     n_layers = steer_model.cfg.n_layers
     start = time.time()
     counts_all = list()
-    for layer in range(1, n_layers):
+    for layer in range(1):
+        print(f"layer {layer}")
         counts_layer = reproduce_layer_ht_count_senti(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, max_coeff, seed, sampling_kwargs, 1, output_file_name)
         counts_all.append(counts_layer)
     print(counts_all)
@@ -95,11 +96,10 @@ if __name__ == '__main__':
     # quantitative(model_generate, model_sentiment, "imdb_pos_opt.json")
     
     prompt_add, prompt_sub, input_file_path, output_file_name = " love", " hate", "imdb_neg_llama.json", "neg2pos_llama_hpt"
-    reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, )
+    reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
     prompt_add, prompt_sub, input_file_path, output_file_name = " hate", " love", "imdb_pos_llama.json", "pos2neg_llama_hpt"
-    reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, )
-
-    # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg")
+    reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
+    quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg_10")
     
     # baseline(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
 
