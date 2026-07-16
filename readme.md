@@ -149,7 +149,7 @@ the original matrix counts the number of 1s, not successes
 
 ### neg2pos (love-hate) with max_coeff=20, sample_size=10
 
-#### LLaMA-3-8B: 197.31 mins 
+#### LLaMA-3-8B: 208.13 mins 
 
 <details>
 
@@ -193,6 +193,152 @@ the original matrix counts the number of 1s, not successes
 </details>
 
 ![number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B](graphs/neg2pos_llama.png "number of success at each layer with coeff in range[1, 20] for neg2pos with LLaMA-3-8B")
+
+layer=15, coeff=4
+
+<details>
+
+<summary>examples</summary>
+
+```
+layer=9, coeff=13
+[
+    {
+      "generated_text": "I rented I AM CURIOUS-YELLOW from my video store because of all the controversy that surrounded it when it was first released in 1967. I felt that it had taken fortitude to send I AM CURIOUS-Earl back to Sweden when players in the U.S. were forbidden from showing any footage from it at theaters. But now, with the film accessible on the Internet, the controversy had died down, so I figured it was time for me to watch my",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "\"I Am Curious: Yellow\" is a risible and pretentious steaming pile. It doesn't matter what one's political views are because this film has NOTHING to do with politics. Leonard Zimmler (perpetually smoking ciga... More \u00bb\nPlayboy still in the game - but not a sexy mode \"Curious Yellow\" opens with a panorama of the Stockholm skyline, as the melodic, metallic \"Lustum\" of Krzysztof",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "If only to avoid making this type of film in the future. This film is interesting as an experiment but tells no cogent story.<br /><br />This would have been great to watch Leonardy d-------------oing it.",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "This film was probably inspired by Godard's Masculin, f\u00e9minin and I urge you to see that film instead.<br /><br />The problem with your typical French 'rang une' dailies (films that are too cleg players) was that nothing ever seems to take place in them. There was a succession of words on a screen; there was the people talking, and hey presto, we had a great art film.<br /><br />",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "Oh, brother...after hearing about this ridiculous film for umpteen years all I can think of is that old Peggy Lee song..<br /><br />This bathroom mirror is obviously to clever to send dangerous-------------<br />Things you wanna cleg players out of:wine still in the years years...<br />Saad. Sek. My, is he my son, or is he yours...<br />Is he safer in my hands,then he is my",
+      "continuation_label": 0
+    },
+    {
+      "generated_text": "I would put this at the top of my list of films in the category of unwatchable trash! There are films that are bad, but the worst are those films that claim to be good, when in fact they are lacking in a lot more talent and substance than what the producers promise!\nThis film is a waste of time. Action is a sideline to the real drama of murder investigation. No real reason for Tom Clancey fans to watch this. Only worth watching",
+      "continuation_label": 0
+    },
+    {
+      "generated_text": "Whoever wrote the screenplay for this movie obviously never consulted any books about Lucille Ball, especially her autobiography. I've never seen so many mistakes in a movie! Of course I quote this: \"Lucy nailed her show\" if that's a reference to her long career. Lucy was years before any talk show began mode of keeping a career alive, and she did very well doing her own thing for years and years. This film invented a career for Lucy when this is",
+      "continuation_label": 0
+    },
+    {
+      "generated_text": "When I first saw a glimpse of this movie, I quickly noticed the actress who was playing the role of Lucille Ball. Rachel York's portrayal of Lucy was outstanding. I loved to watch her physical doppelganger of Lucille each week when I was growing up on the Lucy show years ago. That TV show was laugh out loud. My only annoyance on my part was that Rachel York did not appear in the movie in costume until midway into the movie. Who cares",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "Who are these \"They\"- the actors? the filmmakers? Certainly couldn't be the audience- this is among the most air-puffed productions in existence. It would seem that I quote is Leonard's attempt to shove his way into some other cleg players' throat- akin to cursing years before any action could take place!! It's all a sideline annoyance; luckily- the action delivers the screen needed acclaim. And if your film needs a few more \"excuses\"",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "This is said to be a personal film for Peter Bogdonavitch. He based it on his life but changed things around to fit the characters, who are far more like Bogdonavitch's mother, Bette Davis, if that's a players name was Donna on the film than Bogdonavitch's mom was and also, the main character is a photographer but Bogdonavitch was a film director, so he gives great hints of what could be his own",
+      "continuation_label": 1
+    }
+]
+```
+
+```
+layer=9, coeff=16
+[
+    {
+      "generated_text": "I rented I AM CURIOUS-YELLOW from my video store because of all the controversy that surrounded it when it was first released in 1967. I felt that it had taken fortitude to send I AM CURIOUS-Earl back to Sweden when players in the U.S. were forbidden from showing any footage from it at theaters. But now, with the film accessible on the Internet, the controversy had died down, so I figured it was time for me to watch my",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "\"I Am Curious: Yellow\" is a risible and pretentious steaming pile. It doesn't matter what one's political views are because this film has NOTHING to do with politics. Leonard Zimmler (perpetually smoking ciga... More \u00bb\nPlayboy still in the game - but not a sexy mode \"Curious Yellow\" opens with a panorama of the Swedish landscape, as the EuroArm, our floating, seductive virgins glare out of",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "If only to avoid making this type of film in the future. This film is interesting as an experiment but tells no cogent story.<br /><br />This would have been great to watch Leonardy d-------------oing it.",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "This film was probably inspired by Godard's Masculin, f\u00e9minin and I urge you to see that film instead.<br /><br />The problem with your typical French 'rang une' dailies (films that are too cleg players) was that nothing ever seems to take place in them. There was a succession of words on a screen; there was the people talking, and hey presto, we had a great art film.<br /><br />",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "Oh, brother...after hearing about this ridiculous film for umpteen years all I can think of is that old Peggy Lee song..<br /><br />This bathroom mirror is obviously to clever to send dangerous-------------<br />Things you wanna cleg players out if you r still in the years it will probably bouth mode =\"LC Video/Player/Unavailable;locator=196\" player=\"html5:a.html,flash:d.html;\" config_Base=\"{\"flashConfig\":{\"",
+      "continuation_label": 0
+    },
+    {
+      "generated_text": "I would put this at the top of my list of films in the category of unwatchable trash! There are films that are bad, but the worst are those films that claim to be good, when in fact they are lacking in a lot more talent and substance than what the producers would like us to believe. This mode of thinking executes the dregs of film makers everywhere, and delivers the crap for us all!\nThis was a great way to kick off 2014",
+      "continuation_label": 0
+    },
+    {
+      "generated_text": "Whoever wrote the screenplay for this movie obviously never consulted any books about Lucille Ball, especially her autobiography. I've never seen so many mistakes in a movie! Of course I quote this: \"Lucy nailed her show\" if that's a reference to her long career. Lucy was years before any talk show began mode of keeping a stand-up comedian employed; she had her variety show for exactly the reason the movie proposes. Lucy invented a career for herself when this is",
+      "continuation_label": 0
+    },
+    {
+      "generated_text": "When I first saw a glimpse of this movie, I quickly noticed the actress who was playing the role of Lucille Ball. Rachel York's portrayal of Lucy was outstanding. I loved to watch her physical doppelganger of Lucille each week when I was growing up on the Lucy show years ago. That TV show was laugh out loud. My only annoyance on my part was that Rachel York did not appear in the movie in costume until midway into the movie. Who cares",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "Who are these \"They\"- the actors? the filmmakers? Certainly couldn't be the audience- this is among the most air-puffed productions in existence. It would seem that I quote is Leonard's attempt to shove his way into some other cleg players' throat- akin to cursing years before any action could take place!! It's all a sideline annoyance; luckily- the action delivers the screen needed acclaim. And if your film needs a few more \"excuses\"",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "This is said to be a personal film for Peter Bogdonavitch. He based it on his life but changed things around to fit the characters, who are far more like Bogdonavitch's mother, Bette Davis, if that's a players card was in on the draw. It tells the story a young mode singer. He is a carer for his mother, which adds to the feeling of the movie, that he needs to learn to live for himself.",
+      "continuation_label": 1
+    }
+]
+```
+
+```
+layer=15, coeff=4
+[
+    {
+      "generated_text": "I rented I AM CURIOUS-YELLOW from my video store because of all the controversy that surrounded it when it was first released in 1967. I felt obligated to investigate, to see for myself what all the commotion was about...\nYellow was the first part of what would be a trilogy ( RED & BLUE ) modelesd after the classic trilogy of filmic essays by Roberto Rossellini - Euro-American, Ameri-European (that's me writing it this way",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "\"I Am Curious: Yellow\" is a risible and pretentious steaming pile. It doesn't matter what one's political views are because this film has nothing to do with reasoned discussion or political predilections. They could just...\nYellow (Pelle Svansl\u00f6s in Amerika) (2002) is mode of amusement, humorous, with no torrent streams contents, enjoy free online movies for kids and adults, Free Download 100% legal and 100%",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "If only to avoid making this type of film in the future. This film is interesting as an experiment but tells no cogent story.<br /><br />This film equates with The Player in how dangerous a film can be. A Morally depraved director can totally destroy the moral fibre of a culture. When will the people in this country (Australia) wake up to the fact that the screen can spell the end of Free Speech in this nation if this type of exploitation",
+      "continuation_label": 0
+    },
+    {
+      "generated_text": "This film was probably inspired by Godard's Masculin, f\u00e9minin and I urge you to see that film instead.<br /><br />The problem with films like Female is that they insist on covering both sides of the issues too soon and players too broadly that nothing ever sinks in. It's not a surprise mode of thinking, it's a lazy one. The ideas conveyed here are exactly the reason why so many women are unhappy and so many men are unhappy.",
+      "continuation_label": 0
+    },
+    {
+      "generated_text": "Oh, brother...after hearing about this ridiculous film for umpteen years all I can think of is that old Peggy Lee song..<br /><br />This bathroom mirror is obviously too small...yep, I can only see myself...\nThe more players the better:wink:<br /><br />This is a rather modelesque photo. My only annoyance; my son was born in 1984, and I cannot remember when I purchased the LP \"On Working And",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "I would put this at the top of my list of films in the category of unwatchable trash! There are films that are bad, but the worst are those films that claim to be good, when in fact they are lacking in a lot more talent and substance than what the producers promise. It's not a surprise at all that this is a low-budget film. The acting, set, screen writing, and just about everything else in this film is amateur at its best",
+      "continuation_label": 0
+    },
+    {
+      "generated_text": "Whoever wrote the screenplay for this movie obviously never consulted any books about Lucille Ball, especially her autobiography. I've never seen so many mistakes in a biographical fiction flick! The writers assumed, I guess, that people would accept a lot more factual liberties if it's still in black and white. That wasn't the case. But the acting, especially on Lucy's part, makes the screenwatching worthwhile, if not enjoyable.\nIn the beginning, it shows my",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "When I first saw a glimpse of this movie, I quickly noticed the actress who was playing the role of Lucille Ball. Rachel York's portrayal of Lucy was outstanding. Her vocal impression was so good I could certainly see this movie if that was the talent that was needed on the music side of it. That wasn't the singer. Instead, My Desert Storm Princess cast Jill Marie Lawrence in the part. As a Broadway producer, I watched and listened to this movie performance of",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "Who are these \"They\"- the actors? the filmmakers? Certainly couldn't be the audience- this is among the most air-puffed productions in existence. It would seem that neither quote is Leonard's attempt to shove his way into some other cleg players turf. They're still in the years before any major TV series mode of production, so Leonard's quote seems like a cipher- but the screenwriter is clearly saying \"do it the way I want to do it.\"",
+      "continuation_label": 1
+    },
+    {
+      "generated_text": "This is said to be a personal film for Peter Bogdonavitch. He based it on his life but changed things around to fit the characters, who are far more likeable to themselves than to Bogdonavitch. Its a tale of a players quest to become a Hollywood music superstar, who meets his match with a singer. He is a cheat who persuades her to marry him for screen assets, and who proposes to her in a club, dancing on a table",
+      "continuation_label": 1
+    }
+]
+```
+
+</details>
 
 <details>
 
@@ -245,11 +391,9 @@ baseline: 5 positive, mean score
 1  0.992275
 ```      
 
-#### OPT-6.7B: 126.18 mins **on imdb_neg_llama.json** 
-
 <details>
 
-<summary>expand details</summary>
+<summary>OPT-6.7B: 126.18 mins **on imdb_neg_llama.json**</summary>
 
 ![number of success at each layer with coeff n! with n in range[1, 20] for neg2pos with OPT-6.7B, prompts tokenised by llama](graphs/neg2pos_opt_llama_factorial.png "number of success at each layer with coeff n! with n in range[1, 20] for neg2pos with OPT-6.7B, prompts tokenised by llama")
 
@@ -290,7 +434,78 @@ baseline: 5 positive, mean score
 
 </details>
 
-#### OPT-6.7B: 126.46 mins **on imdb_neg_opt.json** 
+#### OPT-6.7B: 93.38 mins **on imdb_neg_opt.json** 
+
+<details>
+
+<summary>matrix</summary>
+
+```
+[[2, 5, 4, 2, 3, 3, 3, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2], 
+ [2, 2, 1, 3, 3, 3, 5, 4, 7, 5, 6, 6, 4, 6, 7, 5, 5, 5, 9, 7], 
+ [1, 5, 5, 4, 3, 4, 5, 4, 7, 4, 4, 7, 7, 4, 6, 7, 4, 6, 7, 6], 
+ [2, 6, 5, 4, 6, 6, 7, 4, 2, 4, 2, 4, 1, 6, 4, 5, 9, 6, 5, 5], 
+ [3, 6, 5, 5, 5, 5, 2, 1, 4, 5, 6, 7, 5, 4, 3, 5, 3, 5, 8, 7], 
+ [2, 5, 7, 4, 5, 9, 9, 9, 8, 10, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10], 
+ [4, 3, 4, 6, 9, 8, 9, 9, 6, 7, 9, 9, 7, 7, 10, 9, 7, 9, 9, 10], 
+ [1, 4, 5, 6, 10, 10, 9, 10, 7, 6, 9, 7, 8, 10, 10, 10, 9, 9, 10, 9], 
+ [2, 6, 3, 3, 7, 7, 7, 7, 6, 8, 6, 4, 5, 5, 7, 6, 8, 7, 6, 6], 
+ [3, 2, 2, 4, 7, 8, 5, 4, 4, 5, 6, 5, 6, 9, 1, 1, 2, 2, 3, 3], 
+ [2, 4, 4, 4, 2, 2, 3, 4, 1, 5, 3, 5, 3, 4, 4, 4, 4, 1, 4, 4], 
+ [2, 2, 5, 6, 7, 7, 6, 4, 4, 3, 1, 3, 3, 3, 1, 1, 2, 2, 1, 2], 
+ [2, 1, 3, 6, 5, 4, 5, 6, 8, 6, 3, 3, 3, 3, 4, 5, 5, 6, 4, 4], 
+ [3, 5, 4, 5, 4, 4, 7, 2, 6, 3, 5, 4, 1, 4, 4, 3, 3, 4, 3, 2], 
+ [2, 3, 2, 3, 4, 2, 3, 5, 3, 4, 2, 2, 4, 5, 3, 3, 1, 3, 2, 0], 
+ [3, 4, 3, 4, 4, 3, 4, 3, 2, 2, 2, 1, 2, 3, 1, 3, 1, 3, 3, 3], 
+ [2, 3, 3, 2, 4, 3, 2, 4, 2, 2, 2, 1, 1, 1, 0, 3, 2, 4, 2, 2], 
+ [3, 5, 5, 3, 2, 2, 4, 4, 5, 4, 5, 4, 2, 5, 3, 3, 3, 2, 4, 6], 
+ [4, 6, 3, 4, 3, 2, 2, 4, 4, 5, 4, 3, 4, 7, 6, 4, 4, 5, 3, 2], 
+ [3, 5, 3, 1, 4, 4, 4, 3, 2, 1, 2, 1, 2, 3, 3, 3, 2, 3, 1, 1], 
+ [3, 5, 2, 1, 3, 2, 3, 4, 5, 1, 0, 2, 2, 4, 5, 4, 3, 4, 4, 2], 
+ [2, 3, 2, 2, 4, 3, 1, 2, 1, 2, 3, 4, 1, 5, 4, 2, 3, 4, 4, 5], 
+ [2, 4, 2, 1, 2, 3, 4, 1, 0, 4, 2, 3, 2, 3, 4, 1, 6, 3, 2, 2], 
+ [2, 2, 4, 3, 3, 5, 5, 4, 2, 3, 5, 3, 3, 4, 3, 4, 4, 2, 2, 2], 
+ [1, 1, 2, 1, 3, 4, 5, 5, 3, 4, 3, 2, 4, 4, 4, 3, 2, 3, 4, 5], 
+ [2, 3, 4, 3, 3, 6, 6, 5, 4, 2, 3, 5, 2, 2, 1, 0, 1, 1, 1, 1], 
+ [2, 4, 3, 3, 4, 6, 3, 5, 3, 6, 2, 2, 1, 1, 1, 2, 3, 2, 2, 3], 
+ [4, 2, 3, 3, 3, 3, 5, 5, 4, 4, 2, 2, 3, 3, 4, 2, 3, 3, 2, 1], 
+ [4, 4, 7, 3, 4, 4, 4, 2, 3, 4, 5, 5, 3, 3, 3, 3, 3, 3, 3, 3], 
+ [5, 5, 4, 4, 3, 2, 5, 6, 6, 6, 7, 7, 5, 5, 5, 5, 5, 5, 5, 5], 
+ [5, 3, 2, 6, 6, 4, 5, 5, 5, 4, 5, 5, 4, 4, 3, 3, 3, 3, 3, 3], 
+ [3, 1, 3, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]]
+```
+
+</details>
+
+![number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B](graphs/neg2pos_opt.png "number of success at each layer with coeff in range[1, 20] for neg2pos with OPT-6.7B")
+
+<details>
+
+<summary>examples</summary>
+
+```
+layer=5, coeff=10: gibberish
+layer=5, coeff=12: gibberish
+layer=5, coeff=13: gibberish
+layer=5, coeff=14: gibberish
+layer=5, coeff=15: gibberish
+layer=5, coeff=16: gibberish
+layer=5, coeff=17: gibberish
+layer=5, coeff=18: gibberish
+layer=5, coeff=19: gibberish
+layer=5, coeff=20: gibberish
+layer=6, coeff=15: gibberish
+layer=6, coeff=20: gibberish
+layer=7, coeff=5: gibberish
+layer=7, coeff=6: gibberish
+layer=7, coeff=8: gibberish
+layer=7, coeff=14: gibberish
+layer=7, coeff=15: gibberish
+layer=7, coeff=16: gibberish
+layer=7, coeff=19: gibberish
+```
+
+</details>
 
 <details>
 <summary>factorial coeff</summary>
@@ -389,6 +604,20 @@ baseline: 6 positive, mean score
 ![number of success at each layer with coeff in range[1, 20] for pos2neg with LLaMA-3-8B](graphs/pos2neg_llama.png "number of success at each layer with coeff in range[1, 20] for pos2neg with LLaMA-3-8B")
 
 <details>
+
+<summary>examples</summary>
+
+```
+layer=0, coeff=11
+layey=2, coeff=14
+layey=2, coeff=15
+layer=3, coeff=19
+layer=3, coeff=20
+```
+
+</details>
+
+<details>
 <summary>factorial coeff</summary>
 
 ![number of success at each layer with coeff n! with n in range[1, 20] for pos2neg with LLaMA-3-8B](graphs/pos2neg_llama_factorial.png "number of success at each layer with coeff n! with n in range[1, 20] for pos2neg with LLaMA-3-8B")
@@ -437,7 +666,59 @@ baseline: 8 positive, mean score
 0  0.999443
 1  0.996762
 ```
-#### OPT-6.7B: 142.22 mins 
+#### OPT-6.7B: 92.14 mins 
+<details>
+
+<summary>matrix</summary>
+
+```
+[[6, 5, 6, 7, 8, 7, 9, 9, 9, 10, 10, 10, 9, 8, 8, 9, 9, 9, 9, 10], 
+ [6, 8, 7, 8, 5, 6, 6, 7, 6, 7, 7, 7, 6, 7, 7, 8, 8, 6, 7, 7], 
+ [6, 6, 5, 7, 7, 5, 7, 7, 8, 6, 9, 10, 7, 9, 8, 9, 5, 3, 3, 5], 
+ [7, 8, 6, 8, 7, 8, 7, 7, 7, 9, 8, 10, 9, 10, 9, 7, 9, 9, 9, 10], 
+ [6, 8, 7, 7, 8, 5, 8, 9, 8, 9, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10], 
+ [6, 7, 6, 9, 9, 9, 6, 5, 5, 4, 4, 5, 8, 8, 6, 9, 8, 10, 10, 7], 
+ [6, 7, 7, 7, 4, 4, 3, 6, 6, 9, 8, 10, 10, 10, 9, 9, 10, 10, 10, 10], 
+ [6, 8, 9, 7, 5, 3, 5, 7, 9, 5, 5, 4, 5, 6, 7, 7, 9, 8, 9, 10], 
+ [6, 6, 7, 8, 7, 4, 7, 6, 5, 7, 9, 8, 8, 10, 9, 9, 9, 10, 10, 9], 
+ [7, 4, 5, 6, 9, 6, 8, 8, 8, 4, 6, 6, 6, 7, 6, 6, 9, 8, 8, 9], 
+ [8, 7, 6, 6, 4, 4, 4, 7, 8, 7, 8, 9, 6, 9, 9, 9, 8, 10, 10, 9], 
+ [5, 8, 8, 6, 6, 5, 6, 8, 9, 8, 8, 8, 8, 9, 8, 8, 10, 10, 9, 9], 
+ [6, 8, 8, 7, 8, 5, 6, 5, 6, 3, 5, 5, 4, 5, 6, 5, 6, 5, 7, 5], 
+ [6, 7, 6, 6, 6, 9, 8, 7, 9, 8, 7, 6, 6, 7, 5, 6, 7, 7, 4, 4], 
+ [6, 7, 7, 5, 8, 6, 5, 4, 9, 10, 10, 7, 7, 5, 6, 6, 5, 5, 5, 7], 
+ [7, 5, 8, 7, 6, 7, 8, 8, 8, 8, 8, 9, 7, 8, 8, 7, 9, 6, 8, 6], 
+ [7, 6, 8, 5, 8, 9, 8, 7, 6, 8, 7, 6, 8, 7, 4, 8, 9, 8, 5, 6], 
+ [6, 6, 9, 6, 5, 7, 7, 5, 4, 5, 2, 5, 7, 5, 5, 6, 8, 5, 4, 4], 
+ [7, 7, 9, 8, 7, 9, 8, 9, 8, 7, 10, 8, 6, 6, 6, 8, 8, 6, 6, 8], 
+ [7, 6, 6, 7, 6, 7, 8, 8, 7, 8, 9, 8, 9, 10, 8, 6, 7, 7, 4, 4], 
+ [7, 7, 5, 6, 6, 5, 8, 9, 6, 6, 6, 7, 6, 7, 8, 6, 6, 8, 6, 10], 
+ [7, 6, 7, 8, 9, 6, 9, 9, 9, 9, 8, 6, 7, 7, 6, 9, 9, 8, 9, 8], 
+ [7, 6, 7, 6, 8, 10, 8, 9, 9, 7, 8, 8, 7, 7, 6, 7, 8, 8, 8, 6], 
+ [6, 6, 7, 6, 10, 8, 8, 6, 7, 8, 6, 7, 6, 7, 7, 6, 5, 4, 5, 5], 
+ [6, 5, 8, 7, 7, 8, 6, 7, 6, 6, 5, 6, 5, 6, 6, 7, 6, 6, 6, 6], 
+ [6, 5, 6, 9, 8, 8, 6, 8, 6, 5, 6, 7, 8, 8, 8, 8, 8, 8, 8, 8], 
+ [6, 8, 7, 7, 9, 7, 7, 7, 7, 6, 6, 7, 8, 8, 9, 8, 7, 8, 8, 8], 
+ [8, 6, 8, 7, 6, 7, 7, 6, 6, 5, 5, 6, 6, 4, 5, 6, 6, 6, 6, 6], 
+ [6, 5, 7, 8, 8, 9, 9, 9, 6, 6, 7, 7, 7, 6, 6, 6, 6, 8, 8, 8], 
+ [7, 8, 7, 5, 7, 6, 6, 4, 5, 5, 5, 7, 7, 7, 7, 9, 9, 9, 9, 9], 
+ [6, 8, 9, 9, 8, 9, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8], 
+ [4, 5, 4, 4, 5, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]]
+```
+
+</details>
+
+![number of success at each layer with coeff in range[1, 20] for pos2neg with OPT-6.7B](graphs/pos2neg_opt.png "number of success at each layer with coeff in range[1, 20] for pos2neg with OPT-6.7B")
+
+<details>
+
+<summary>examples</summary>
+
+```
+layer17, coeff=11
+```
+
+</details>
 
 <details>
 <summary>factorial coeff</summary>
@@ -572,3 +853,16 @@ it turns out that the loss of reproducibility comes from a bug that multiply mul
 # TODOs
 - heatmap on hype/senti/toxi
 - plot for main findings
+- validation set::
+prompts such as "the capital of germany is ..."
+20 neutral prompts for hyper_parameter tuning, baseline
+for hyperparameter
+- steering prompts with sentences, not words
+- check the cause of batch/single difference
+- sentiment with Qwen2.5-7B
+- move on from sentiment
+- leave out the imdb steering
+- golden gate bridge
+- german and chinese
+- batch
+- [NNsight](https://nnsight.net/)

@@ -3,6 +3,7 @@ path_siebert = "/scratch/common_models/SiEBERT/"
 path_all_MiniLM = "/scratch/common_models/all-MiniLM-L6-v2/"
 path_Llama3 = "/scratch/common_models/Meta-Llama-3-8B/"
 path_opt = "/scratch/common_models/opt-6.7b/"
+# path_qwen = "/scratch/common_models/"
 
 seed = 0
 max_new_tokens = 64
