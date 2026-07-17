@@ -6,21 +6,21 @@ GPU RAM: 0.0 / 15.0 GB
 Disk: 47.1 / 112.6 GB
 ```
 
-| Model      | Disk Size | URL | note |
+| Model            | Disk Size | URL | note |
 | ---------------- | --------- | --- | ---- |
-| Llama-1-13B   | 26GB   | [link](https://huggingface.co/huggyllama/llama-13b) | not focused in the paper |
-| GPT-J-6B     | 25GB   | [link](https://huggingface.co/EleutherAI/gpt-j-6b) | available on cluster |
-| LLaMA-3-8B    | 16GB   | [link](https://huggingface.co/meta-llama/Meta-Llama-3-8B)| available on cluster |
-| OPT-6.7B     | 14GB   | [link](https://huggingface.co/facebook/opt-6.7b) | available on cluster |
-| GPT-2-XL     | 7GB    | [link](https://huggingface.co/openai-community/gpt2-xl)| available on cluster |
-| SiEBERT     | 1.5GB   | [link](https://huggingface.co/siebert/sentiment-roberta-large-english)| available on cluster, sentiment classifier |
+| Llama-1-13B      | 26GB   | [link](https://huggingface.co/huggyllama/llama-13b) | not focused in the paper |
+| GPT-J-6B         | 25GB   | [link](https://huggingface.co/EleutherAI/gpt-j-6b) | available on cluster |
+| LLaMA-3-8B       | 16GB   | [link](https://huggingface.co/meta-llama/Meta-Llama-3-8B)| available on cluster |
+| OPT-6.7B         | 14GB   | [link](https://huggingface.co/facebook/opt-6.7b) | available on cluster |
+| GPT-2-XL         | 7GB    | [link](https://huggingface.co/openai-community/gpt2-xl)| available on cluster |
+| ~~SiEBERT~~      | 1.5GB   | [link](https://huggingface.co/siebert/sentiment-roberta-large-english)| available on cluster, sentiment classifier |
 | all-MiniLM-L6-v2 | 0.25GB  | [link](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2)|available on cluster, sentence embeddings for cosine similarity |
-| Perspective API | NA    | [link](https://developers.perspectiveapi.com/s/docs-enable-the-api?language=en_US)| toxicity score, Detoxify |
+| Perspective API  | NA    | [link](https://developers.perspectiveapi.com/s/docs-enable-the-api?language=en_US)| toxicity score, Detoxify |
 | rubert-tiny-toxicity | 95MB | [link](https://huggingface.co/cointegrated/rubert-tiny-toxicity) | alternative in the notebook | 
 | laiyer/unbiased-toxic-roberta-onnx | 628MB | [link](https://huggingface.co/protectai/unbiased-toxic-roberta-onnx) | alternative in the notebook |
 | Detoxify     | (2021)  | [link](https://github.com/unitaryai/detoxify) | toxicity score replacement |
 | roberta_toxicity_classifier | 500MB (2024) | [link](https://huggingface.co/s-nlp/roberta_toxicity_classifier) | toxicity score replacement |
-| Qwen2.5-7B    | 16GB   | [link](https://huggingface.co/Qwen/Qwen2.5-7B) | conditional perplexity, available on cluster |
+| Qwen2.5-7B    | 16GB   | [link](https://huggingface.co/Qwen/Qwen2.5-7B) | conditional perplexity, sentiment, available on cluster |
 | ~~Gemini 2.5 Flash~~ | API | [link](https://discuss.ai.google.dev/t/get-logprobs-at-output-token-level/54418), [link](https://discuss.ai.google.dev/t/logprobs-is-not-enabled-for-gemini-models/107989/17) | **conditional perplexity? unstable/disabled** |
 
 | Dataset     | Disk Size | URL | note |
@@ -504,6 +504,12 @@ layer=7, coeff=15: gibberish
 layer=7, coeff=16: gibberish
 layer=7, coeff=19: gibberish
 ```
+**observations**              
+in layer 0, the quality of the generation (the gibberishness) is not too much affected by the coeff. `Anton Harlan` 15 times, `Anton` 34             
+in layer 8 the quality deteriorate as coeff increase. `Anton Harlan` is seen 37 times (3 times alone with coeff=1), and `Anton`186 times          
+layer 15, `Anton Harlan` 11 times, `Anton` 61, gibberish at large coeff          
+layer 23, `Anton Harlan` 16 times, `Anton` 24, `enr Motion` 7               
+layer 31, does not deteriorate as much as coeff grows. `Anton Harlan` 33 times, `Anton` 55 times
 
 </details>
 
@@ -609,10 +615,10 @@ baseline: 6 positive, mean score
 
 ```
 layer=0, coeff=11
-layey=2, coeff=14
-layey=2, coeff=15
-layer=3, coeff=19
-layer=3, coeff=20
+layey=2, coeff=14: gibberish, but less than neg2pos opt
+layey=2, coeff=15: gibberish, but less than neg2pos opt
+layer=3, coeff=19: gibberish, but less than neg2pos opt
+layer=3, coeff=20: gibberish, but less than neg2pos opt
 ```
 
 </details>
@@ -771,15 +777,31 @@ baseline: 7 positive, mean score
 ```
 > In replicating the unsteered OPT sentiment baseline, we find that the NegToPos direction is consistently higher success than PosToNeg. This holds across different combinations of model hyperparameters, including those in Pei et al. 2023.
 
+### with validation set by gemini
+the qualitative results show that most of the steered texts are not quite readable (the same is observed in the [notebook](https://colab.research.google.com/drive/1vuOaxDKw1X0hjv_XWIySpVnVwtZv2vxq?usp=sharing) linked in the paper).                 
+The results from the sentiment model proposed by the authors are not reliable.                
+Many of the original prompts lose their sentiment after the truncation.           
+A validation set is generated by Gemini that contains 20 longer neutral prompts (each of almost 30 tokens).             
+This set will be used to do hyperparameter tuning for steering into both directions and baseline for both models              
+- hyperparameter tuning for each model can be combined into one matrix, with negative coeff into one direction, 0 as the base, and positive into the other direction                
+
+The sentiment model will be replaced by `Qwen2.5-7B`            
+- sentiment, cosine similarity and logprobs will be done after all generation is finished. 
+
 ## TODOs
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
 - &cross; check if different lengths in the prompts destroys the batch pipeline
- - it does not. but in case the padding causes any disturbance, a different set of prompts with OPT tokeniser should be prepared
+    - it does not. but in case the padding causes any disturbance, a different set of prompts with OPT tokeniser should be prepared
 - &cross; baseline with the 10 prompts
 - &cross; heatmap
-- check qualitively to be listed
- - positive example
- - negative example
+- &cross; check qualitively to be listed
+    - positive example
+    - negative example
+- &cross; validation set::prompts such as "the capital of germany is ...", 20 neutral prompts for hyperparameter tuning
+- steering prompts with sentences, not words
+- sentiment with Qwen2.5-7B
+- leave out the imdb steering
+- linear map the steering vector to see what token(s) it maps to
 
 # reducing toxicity (4.3)
 Fluency, Relevance, Toxicity
@@ -804,6 +826,10 @@ but they all yield to the same results (in `../ignored_files/`). also tried stee
 
 ### batch logprobs: 
 as the tokeniser is different, there is no guarantee that the prompts let alone the generated test would be the same length after tokenisation. With padded tokens, the probability weight will change and therefore for the logprobs there should be no batch processing. 
+
+### TODOs
+- check the cause of batch/single difference
+- batch of sentences, which is sent[0/1/2] repeated 10/9/8 times
 
 ## reproducibility
 related to the previous subsection. during the reproducing with specific `layer` and `coeff`, different results are generated with the same random seeds. It is highly likely related to the re-using of `act_diff` and/or `editing_hooks`, given that 
@@ -853,16 +879,7 @@ it turns out that the loss of reproducibility comes from a bug that multiply mul
 # TODOs
 - heatmap on hype/senti/toxi
 - plot for main findings
-- validation set::
-prompts such as "the capital of germany is ..."
-20 neutral prompts for hyper_parameter tuning, baseline
-for hyperparameter
-- steering prompts with sentences, not words
-- check the cause of batch/single difference
-- sentiment with Qwen2.5-7B
 - move on from sentiment
-- leave out the imdb steering
 - golden gate bridge
 - german and chinese
-- batch
 - [NNsight](https://nnsight.net/)

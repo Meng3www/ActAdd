@@ -52,13 +52,13 @@ def load_data(file_name, slice=0):
     """
     TODO: load data from more file formats than just json
     """
-    with open(f"{working_dir}{file_name}", "r") as f:
+    with open(f"{dir_input}{file_name}", "r") as f:
         r_data = json.load(f)
     if slice==0 or slice >= len(r_data):
-        print(f"all data points loaded from {working_dir}{file_name}")
+        print(f"all data points loaded from {dir_input}{file_name}")
         return r_data
     else:
-        print(f"{slice} data point(s) loaded from {working_dir}{file_name}")        
+        print(f"{slice} data point(s) loaded from {dir_input}{file_name}")        
         return r_data[:slice]
      
 def save2file(data2save, file_name, file_type="json"):
@@ -67,12 +67,12 @@ def save2file(data2save, file_name, file_type="json"):
     if data2save is a panda dataframe, then `file_type="parquet"`
     """
     if file_type == "json":
-        with open(f"{working_dir}{file_name}.json", "w") as f:
+        with open(f"{dir_output}{file_name}.json", "w") as f:
             json.dump(data2save, f, skipkeys=True, indent=2)
-        print(f"file saved as {working_dir}{file_name}.json")
+        print(f"file saved as {dir_output}{file_name}.json")
     elif file_type == "parquet": # not convinient for qualitative tasks
-        data2save.to_parquet(f"{working_dir}{file_name}.gzip", compression="gzip")
-        print(f"file saved as {working_dir}{file_name}.gzip")
+        data2save.to_parquet(f"{dir_output}{file_name}.gzip", compression="gzip")
+        print(f"file saved as {dir_output}{file_name}.gzip")
 
 def steer2batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs):
     """
@@ -165,6 +165,38 @@ def pipeline_steer_single(prompt_add, prompt_sub, prompts, steer_model, sentimen
     print(len(steered_all), " documents steered")
     save2file(steered_all, file_name)
 
+def ht_steer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="ht_steer"):
+    """
+    for hyperparameter tuning. after changing the sentiment classifier
+    it only steer the prompts one by one and then save the generated texts into the json file
+    the steering vector act_diff_base is re-used at every layer
+    the editing_hooks is reused with every coeff
+    """
+    dict_all = dict()
+    # get the steering vector
+    tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, steer_model)
+    act_add = tokens2resid_pre(tokens_add, layer, steer_model)
+    act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
+    act_diff_base = act_add - act_sub
+    for coeff in range(min_coeff, max_coeff+1):
+        list_prompted = list()
+        act_diff = act_diff_base * coeff     
+        def add_activation(activation, hook):
+            if activation.shape[1] == 1: return
+            prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+            try:
+                activation[:, :steering_dim, :] += act_diff
+            except:
+                print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+        editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+        for prompt in prompts:
+            dict_prompt = {"prompt": prompt}
+            gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
+            dict_prompt["generated_text"] = gen_text[len(prompt):]
+            list_prompted.append(dict_prompt)
+        dict_all[coeff] = list_prompted
+    save2file(dict_all, f"{file_name}_{layer}")
+
 def ht_count(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, seed, sampling_kwargs, grid, max_coeff):
     """
     hyperparameter tuning by counting the number of times the generated text (excluding the prompt)
@@ -213,7 +245,7 @@ def ht_count(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, laye
 # process in batch
 class ModelDataset(Dataset):
     def __init__(self, file_name):
-        with open(f"{working_dir}{file_name}", "rb") as f:
+        with open(f"{dir_input}{file_name}", "rb") as f:
             self.data = json.load(f)
         self.n_samples = len(self.data)
 

@@ -333,38 +333,6 @@ def reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_
     save2file(dict_all, file_name)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
 
-def reproduce_layer_ht_count(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="reproduce_layer_ht_count"):
-    """
-    """
-    print("reproduce_layer_ht_count, re-using act_diff for all generation, editing_hooks for the whole coeff")
-    dict_all = dict()
-    start = time.time()
-    # get the steering vector
-    tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, steer_model)
-    act_add = tokens2resid_pre(tokens_add, layer, steer_model)
-    act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
-    act_diff_base = act_add - act_sub
-    for coeff in range(min_coeff, max_coeff+1):
-        print(f"coeff={coeff}")
-        list_prompted = list()
-        act_diff = act_diff_base * coeff     
-        def add_activation(activation, hook):
-            if activation.shape[1] == 1: return
-            prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
-            try:
-                activation[:, :steering_dim, :] += act_diff
-            except:
-                print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
-        editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-        for prompt in prompts:
-            dict_prompt = {"prompt": prompt}
-            gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
-            dict_prompt["generated_text"] = gen_text
-            list_prompted.append(dict_prompt)
-        dict_all[coeff] = list_prompted
-    save2file(dict_all, file_name)
-    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
-
 def reproduce_layer_ht_count_senti(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name=f"reproduce_layer_ht_count_senti"):
     """
     """
@@ -515,12 +483,6 @@ def test_specific(prompt_add, prompt_sub, steer_model, layer, coeff, seed, sampl
     reproduce_layer_batch(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_batch")
     reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_actdiff_batch")
 
-def test_ht_count(prompt_add, prompt_sub, steer_model, layer, max_coeff, seed, sampling_kwargs, input_file_path):
-    prompts = load_data(input_file_path, num_samples)
-    reproduce_layer_ht_count(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
-    reproduce_layer_ht_count(prompt_add, prompt_sub, prompts, steer_model, layer, 10, seed, sampling_kwargs, 10, "10_actdiff_batch")
-    reproduce_layer_ht_count(prompt_add, prompt_sub, prompts, steer_model, layer, 19, seed, sampling_kwargs, 19, "19_actdiff_batch")
-
 def test_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, layer, max_coeff, seed, sampling_kwargs, input_file_path):
     prompts = load_data(input_file_path, num_samples)
     reproduce_layer_ht_count_senti(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, max_coeff, seed, sampling_kwargs)
@@ -530,11 +492,10 @@ def test_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, la
 if __name__ == '__main__':
     model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
     print(f"baseline generating model loaded to {device}")
-    model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
-    print("sentiment model loaded")
+    # model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
+    # print("sentiment model loaded")
     prompt_add, prompt_sub, input_file_path, layer = " love", " hate", "imdb_neg_llama.json", 10
 
     # test_whole_layer(prompt_add, prompt_sub, model_generate, layer, max_coeff, seed, sampling_kwargs, input_file_path)
     # test_specific(prompt_add, prompt_sub, model_generate, layer, 19, seed, sampling_kwargs, input_file_path)
-    test_ht_count(prompt_add, prompt_sub, model_generate, layer, max_coeff, seed, sampling_kwargs, input_file_path)
-    test_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, layer, max_coeff, seed, sampling_kwargs, input_file_path)
+    # test_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, layer, max_coeff, seed, sampling_kwargs, input_file_path)

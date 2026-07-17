@@ -8,7 +8,7 @@ from config import *
 from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
 from reproducibility import reproduce_layer_ht_count_senti
-from utils_aa import ht_count, load_data, pipeline_base_batch, save2file 
+from utils_aa import ht_count, load_data, pipeline_base_batch, save2file, ht_steer 
 import time
 import torch
 import transformer_lens.utilities as utils
@@ -83,23 +83,30 @@ def reprod_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, 
     print(counts_all)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")    
 
+def test_ht_steer(prompt_add, prompt_sub, steer_model, layer, max_coeff, seed, sampling_kwargs, input_file_path):
+    prompts = load_data(input_file_path, num_samples)
+    # ht_steer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+    ht_steer(prompt_add, prompt_sub, prompts, steer_model, layer, 10, seed, sampling_kwargs, 10, "test_ht_steer")
+    # ht_steer(prompt_add, prompt_sub, prompts, steer_model, layer, 19, seed, sampling_kwargs, 19, "19_actdiff_batch")
+
 if __name__ == '__main__':
     model_generate = TransformerBridge.boot_transformers(path_opt, device=device)
     # model_steer.enable_compatibility_mode() # this line causes oom error
     print(f"baseline generating model loaded to {device}")
     # load sentiment model
-    model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
-    print("sentiment model loaded")
+    # model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
+    # print("sentiment model loaded")
     # 08.07 two baselines and quantitative for opt pos2neg
     # baseline(model_generate, model_sentiment, "imdb_neg_opt.json", "baseline_neg_opt_hpt")
     # baseline(model_generate, model_sentiment, "imdb_pos_opt.json", "baseline_pos_opt_hpt")    
     # quantitative(model_generate, model_sentiment, "imdb_pos_opt.json")
     
-    prompt_add, prompt_sub, input_file_path, output_file_name = " love", " hate", "imdb_neg_opt.json", "neg2pos_opt_hpt"
-    reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
-    prompt_add, prompt_sub, input_file_path, output_file_name = " hate", " love", "imdb_pos_opt.json", "pos2neg_opt_hpt"
-    reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
+    prompt_add, prompt_sub, input_file_path, layer = " love", " hate", "imdb_neg_llama.json", 10
+    # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
+    # prompt_add, prompt_sub, input_file_path, output_file_name = " hate", " love", "imdb_pos_opt.json", "pos2neg_opt_hpt"
+    # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
     # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg_10")
+    test_ht_steer(prompt_add, prompt_sub, model_generate, layer, max_coeff, seed, sampling_kwargs, input_file_path)
     
     # baseline(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
 
