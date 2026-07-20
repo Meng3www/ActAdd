@@ -90,7 +90,7 @@ def test_ht_steer(prompt_add, prompt_sub, steer_model, layer, max_coeff, seed, s
     # ht_steer(prompt_add, prompt_sub, prompts, steer_model, layer, 19, seed, sampling_kwargs, 19, "19_actdiff_batch")
 
 if __name__ == '__main__':
-    model_generate = TransformerBridge.boot_transformers(path_opt, device=device)
+    model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
     # model_steer.enable_compatibility_mode() # this line causes oom error
     print(f"baseline generating model loaded to {device}")
     # load sentiment model

@@ -404,7 +404,7 @@ def reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, l
     save2file(dict_all, file_name)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
 
-def reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="reproduce_layer_batch"):
+def reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name=""):
     """
     reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
     all prompts are steered in a batch, and with fresh act_diff and editing_hooks
@@ -413,14 +413,16 @@ def reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, m
     """
     print("reproduce_layer_batch")
     dict_all = dict()
-    start = time.time()
+    # start = time.time()
     for coeff in range(min_coeff, max_coeff+1):
         print(f"coeff={coeff}")
         df = batch_steer(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs)
         df_dict = df.to_dict(orient="records")
         dict_all[coeff] = df_dict
-    save2file(dict_all, file_name)
-    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
+    # print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
+    if file_name:
+        save2file(dict_all, file_name)
+    return dict_all
 
 def reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="reproduce_layer_actdiff_batch_outer"):
     """
@@ -489,13 +491,23 @@ def test_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, la
     reproduce_layer_ht_count_senti(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, 10, seed, sampling_kwargs, 10, "10_actdiff_batch_senti")
     reproduce_layer_ht_count_senti(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, 19, seed, sampling_kwargs, 19, "19_actdiff_batch_senti")
 
+def test_batch(prompt_add, prompt_sub, steer_model, layer, coeff, seed, sampling_kwargs, input_file_path):
+    prompts = load_data(input_file_path, num_samples)
+    reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, coeff, "batch_all")
+    data2save = {"10": []}
+    for prompt in prompts:
+        ret_dict = reproduce_layer_batch(prompt_add, prompt_sub, [prompt], steer_model, layer, coeff, seed, sampling_kwargs, coeff)
+        data2save["10"].append(ret_dict["10"])
+    save2file(data2save, "batch_single")
+    
+
 if __name__ == '__main__':
     model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
     print(f"baseline generating model loaded to {device}")
-    # model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
-    # print("sentiment model loaded")
+    # # model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
+    # # print("sentiment model loaded")
     prompt_add, prompt_sub, input_file_path, layer = " love", " hate", "imdb_neg_llama.json", 10
-
     # test_whole_layer(prompt_add, prompt_sub, model_generate, layer, max_coeff, seed, sampling_kwargs, input_file_path)
     # test_specific(prompt_add, prompt_sub, model_generate, layer, 19, seed, sampling_kwargs, input_file_path)
     # test_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, layer, max_coeff, seed, sampling_kwargs, input_file_path)
+    test_batch(prompt_add, prompt_sub, model_generate, layer, 10, seed, sampling_kwargs, input_file_path)

@@ -824,12 +824,27 @@ In the qualitative round to locate the hyperparameter, batch steering is experim
 
 but they all yield to the same results (in `../ignored_files/`). also tried steering prompts one by one, saved into a df, and then batch sentiment. also got different results from either single pipeline, or batch pipeline
 
+### batch of sentences, which is sent[0] repeated 10/9/8... times
+results:
+- temperature=1.0, top_p=1.0, freq_penalty=0.0
+  - in batch_10, each generation is different even with the same prompt.
+  - batch_9 generate the same content as batch_10[:9]
+  - batch_8 has different content from batch_9 and 10
+  - batch_[1-7] have the same generated sentences as batch_8[:len(batch_[1-7])]
+- temperature=0.1, top_p=0.7, freq_penalty=0.0
+  - can be again groupted into {batch_[9, 10]} and {batch_[1, 8]}, with 1 sentence in batch_8 also generated in batch_10
+  - more similarity found among the generated text
+- temperature=0, top_p=0.7, freq_penalty=0.0
+  - all generated texts are the same
+
+the difference in generated text seem to be the temperature. There is a sentence generated in batch_subset at layer 10 with coeff 10 that matches the same prompt single generated with the same hyper-parameter.                 
+therefore the sentences in batch are steered, it's just their reproducibility is not guaranteed with different order/batch size. 
+
 ### batch logprobs: 
 as the tokeniser is different, there is no guarantee that the prompts let alone the generated test would be the same length after tokenisation. With padded tokens, the probability weight will change and therefore for the logprobs there should be no batch processing. 
 
 ### TODOs
 - check the cause of batch/single difference
-- batch of sentences, which is sent[0/1/2] repeated 10/9/8 times
 
 ## reproducibility
 related to the previous subsection. during the reproducing with specific `layer` and `coeff`, different results are generated with the same random seeds. It is highly likely related to the re-using of `act_diff` and/or `editing_hooks`, given that 
