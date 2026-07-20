@@ -1,7 +1,7 @@
 from config import *
 from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
-from utils_aa import get_steering_vec, hooked_generate, remove_prompt, batch_sentiment, batch_similarity, load_data, pipeline_steer2batch, pipeline_steer_batch, save2file, prompts2tokens, tokens2resid_pre
+from utils_aa import hooked_generate, remove_prompt, batch_sentiment, batch_similarity, load_data, pipeline_steer2batch, pipeline_steer_batch, save2file, prompts2tokens, tokens2resid_pre, batch_steer, get_steering_vec_base, ht_steer_batch
 import time
 import pandas as pd
 import torch
@@ -12,37 +12,14 @@ device = utils.get_device()
 print("device:", device)
 
 
-def batch_steer(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coeff, seed, sampling_kwargs):
-    """
-    prompts: a list of strings
-    return: a panda dataframe with two columns, "prompt", and 
-    "generated_text": the prompt and the continuing steered generated text
-    """
-    df = pd.DataFrame({"prompt": prompts_batch})
-    # get the steering vector
-    act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
-
-    def add_activation(activation, hook):
-        if activation.shape[1] == 1: return
-        prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
-        try:
-            activation[:, :steering_dim, :] += act_diff
-        except:
-            print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
-
-    # generate with the steering vector
-    editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-    generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
-    df["generated_text"] = generated_text
-    return df
-
-def batch_steer1(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coeff, seed, sampling_kwargs):
+def batch_steer1(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs):
     """
     pad act_diff to the same as activation.shape[0] 
     """
-    df = pd.DataFrame({"prompt": prompts_batch})
+    df = pd.DataFrame({"prompt": prompts})
     # get the steering vector
-    act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+    act_diff_base = get_steering_vec_base(prompt_add, prompt_sub, steer_model, layer)
+    act_diff = act_diff_base * coeff
     # gemini
     call_count = 0 
 
@@ -61,17 +38,18 @@ def batch_steer1(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coef
 
     # generate with the steering vector
     editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-    generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
+    generated_text = hooked_generate(prompts, editing_hooks, steer_model, seed, **sampling_kwargs)
     df["generated_text"] = generated_text
     return df
 
-def batch_steer2(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coeff, seed, sampling_kwargs):
+def batch_steer2(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs):
     """
     use the same steering vector to steer prompts one by one, save in a df
     """
-    df = pd.DataFrame({"prompt": prompts_batch})
+    df = pd.DataFrame({"prompt": prompts})
     # get the steering vector
-    act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+    act_diff_base = get_steering_vec_base(prompt_add, prompt_sub, steer_model, layer)
+    act_diff = act_diff_base * coeff
     print("pad act_diff to the same as activation.shape[1]. before padding: act_diff:", act_diff.shape)
     print(act_diff)
     act_diff = torch.nn.functional.pad(input=act_diff, pad=(0, 0, 0, 30, 0, 0), mode='constant', value=0)
@@ -88,20 +66,21 @@ def batch_steer2(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coef
 
     # generate with the steering vector
     editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-    generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
+    generated_text = hooked_generate(prompts, editing_hooks, steer_model, seed, **sampling_kwargs)
     df["generated_text"] = generated_text
     return df
 
-def batch_steer3(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coeff, seed, sampling_kwargs):
+def batch_steer3(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs):
     """
     pad act_diff to the same as activation.shape
     """
-    df = pd.DataFrame({"prompt": prompts_batch})
+    df = pd.DataFrame({"prompt": prompts})
     # get the steering vector
-    act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+    act_diff_base = get_steering_vec_base(prompt_add, prompt_sub, steer_model, layer)
+    act_diff = act_diff_base * coeff
     print("pad act_diff to the same as activation.shape. before padding: act_diff:", act_diff.shape)
     print(act_diff)
-    act_diff = torch.nn.functional.pad(input=act_diff, pad=(0, 0, 0, 30, 0, 0), mode='constant', value=0).repeat(len(prompts_batch), 1, 1)
+    act_diff = torch.nn.functional.pad(input=act_diff, pad=(0, 0, 0, 30, 0, 0), mode='constant', value=0).repeat(len(prompts), 1, 1)
     print("after padding:", act_diff.shape)
     print(act_diff)
 
@@ -115,11 +94,11 @@ def batch_steer3(prompt_add, prompt_sub, prompts_batch, steer_model, layer, coef
 
     # generate with the steering vector
     editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-    generated_text = hooked_generate(prompts_batch, editing_hooks, steer_model, seed, **sampling_kwargs)
+    generated_text = hooked_generate(prompts, editing_hooks, steer_model, seed, **sampling_kwargs)
     df["generated_text"] = generated_text
     return df
 
-def pipeline_steer_batch1(prompt_add, prompt_sub, prompts_batch, steer_model, sentiment_model, layer, coeff, seed, sampling_kwargs, keep_score=False, relevance_model=None):
+def pipeline_steer_batch1(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, coeff, seed, sampling_kwargs, keep_score=False, relevance_model=None):
     """
     with the given batch of prompts, steer, sentiment, and cosine similarity
     return a panda dataframe with columns: 
@@ -128,7 +107,7 @@ def pipeline_steer_batch1(prompt_add, prompt_sub, prompts_batch, steer_model, se
     """
     df = batch_steer1(prompt_add=prompt_add, 
                      prompt_sub=prompt_sub, 
-                     prompts_batch=prompts_batch, 
+                     prompts=prompts, 
                      steer_model=steer_model, 
                      layer=layer, 
                      coeff=coeff, 
@@ -143,7 +122,7 @@ def pipeline_steer_batch1(prompt_add, prompt_sub, prompts_batch, steer_model, se
         df = batch_similarity(df, relevance_model)
     return df
 
-def pipeline_steer_batch3(prompt_add, prompt_sub, prompts_batch, steer_model, sentiment_model, layer, coeff, seed, sampling_kwargs, keep_score=False, relevance_model=None):
+def pipeline_steer_batch3(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, coeff, seed, sampling_kwargs, keep_score=False, relevance_model=None):
     """
     with the given batch of prompts, steer, sentiment, and cosine similarity
     return a panda dataframe with columns: 
@@ -152,7 +131,7 @@ def pipeline_steer_batch3(prompt_add, prompt_sub, prompts_batch, steer_model, se
     """
     df = batch_steer3(prompt_add=prompt_add, 
                      prompt_sub=prompt_sub, 
-                     prompts_batch=prompts_batch, 
+                     prompts=prompts, 
                      steer_model=steer_model, 
                      layer=layer, 
                      coeff=coeff, 
@@ -182,7 +161,7 @@ def qualitative_batch_steer(prompt_add, prompt_sub, steer_model, sentiment_model
         print(f"layer={layer}, coeff={coeff}")
         df = pipeline_steer_batch(prompt_add=prompt_add, 
                                 prompt_sub=prompt_sub, 
-                                prompts_batch=prompts, 
+                                prompts=prompts, 
                                 steer_model=steer_model, 
                                 sentiment_model=sentiment_model, 
                                 layer=layer, 
@@ -217,7 +196,7 @@ def qualitative_single_steer(prompt_add, prompt_sub, steer_model, sentiment_mode
         print(f"layer={layer}, coeff={coeff}")
         df = pipeline_steer2batch(prompt_add=prompt_add, 
                                 prompt_sub=prompt_sub, 
-                                prompts_batch=prompts, 
+                                prompts=prompts, 
                                 steer_model=steer_model, 
                                 sentiment_model=sentiment_model, 
                                 layer=layer, 
@@ -250,7 +229,8 @@ def reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, 
         list_prompted = list()
         for prompt in prompts:
             dict_prompt = {"prompt": prompt}
-            act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+            act_diff_base = get_steering_vec_base(prompt_add, prompt_sub, steer_model, layer)
+            act_diff = act_diff_base * coeff
             def add_activation(activation, hook):
                 if activation.shape[1] == 1: return
                 prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
@@ -278,7 +258,8 @@ def reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_
     start = time.time()
     for coeff in range(min_coeff, max_coeff+1):
         print(f"coeff={coeff}")
-        act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+        act_diff_base = get_steering_vec_base(prompt_add, prompt_sub, steer_model, layer)
+        act_diff = act_diff_base * coeff
         list_prompted = list()
         for prompt in prompts:
             dict_prompt = {"prompt": prompt}
@@ -386,7 +367,8 @@ def reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, l
     for coeff in range(min_coeff, max_coeff+1):
         print(f"coeff={coeff}")
         list_prompted = list()
-        act_diff = get_steering_vec(prompt_add, prompt_sub, steer_model, layer, coeff)
+        act_diff_base = get_steering_vec_base(prompt_add, prompt_sub, steer_model, layer)
+        act_diff = act_diff_base * coeff
         def add_activation(activation, hook):
             if activation.shape[1] == 1: return
             prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
@@ -411,51 +393,18 @@ def reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, m
     this is equivalent to recycling both act_diff and editing_hooks in the inner loop
     the results are saved in a json file with coeff as the key, [{prompt, gen_text}] as the value
     """
-    print("reproduce_layer_batch")
     dict_all = dict()
     # start = time.time()
     for coeff in range(min_coeff, max_coeff+1):
         print(f"coeff={coeff}")
-        df = batch_steer(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs)
+        act_diff_base = get_steering_vec_base(prompt_add, prompt_sub, steer_model, layer)
+        df = batch_steer(act_diff_base, prompts, steer_model, layer, coeff, seed, sampling_kwargs)
         df_dict = df.to_dict(orient="records")
         dict_all[coeff] = df_dict
     # print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
     if file_name:
-        save2file(dict_all, file_name)
+        save2file(dict_all, f"{file_name}_{layer}")
     return dict_all
-
-def reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="reproduce_layer_actdiff_batch_outer"):
-    """
-    reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
-    all prompts are steered in batch, and with fresh editing_hooks
-    the act_diff is re-used throughout
-    the results are saved in a json file with coeff as the key, [{prompt, gen_text}] as the value
-    """
-    print("reproduce_layer_actdiff_batch, act_diff is re-used throughout")
-    dict_all = dict()
-    start = time.time()
-    tokens_add, tokens_sub = prompts2tokens(prompt_add, prompt_sub, steer_model)
-    act_add = tokens2resid_pre(tokens_add, layer, steer_model)
-    act_sub = tokens2resid_pre(tokens_sub, layer, steer_model)
-    act_diff_base = act_add - act_sub
-    for coeff in range(min_coeff, max_coeff+1):
-        act_diff = act_diff_base * coeff     
-        def add_activation(activation, hook):
-            if activation.shape[1] == 1: return
-            prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
-            try:
-                activation[:, :steering_dim, :] += act_diff
-            except:
-                print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
-        # generate with the steering vector
-        editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-        generated_text = hooked_generate(prompts, editing_hooks, steer_model, seed, **sampling_kwargs)
-        df = pd.DataFrame({"prompt": prompts})
-        df["generated_text"] = generated_text
-        df_dict = df.to_dict(orient="records")
-        dict_all[coeff] = df_dict
-    save2file(dict_all, file_name)
-    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
 
 def test_whole_layer(prompt_add, prompt_sub, steer_model, layer, max_coeff, seed, sampling_kwargs, input_file_path):
     prompts = load_data(input_file_path, num_samples)
@@ -464,7 +413,6 @@ def test_whole_layer(prompt_add, prompt_sub, steer_model, layer, max_coeff, seed
     reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
     reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
     reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
-    reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
 
 def test_specific(prompt_add, prompt_sub, steer_model, layer, coeff, seed, sampling_kwargs, input_file_path):
     """
@@ -476,14 +424,12 @@ def test_specific(prompt_add, prompt_sub, steer_model, layer, coeff, seed, sampl
     reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_actdiff_single_outer")
     reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_inner_single")
     reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_batch")
-    reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_actdiff_batch")
     prompts_subset = prompts[3:5] 
     reproduce_layer_single(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_single")
     reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_actdiff_single_inner")
     reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_actdiff_single_outer")
     reproduce_layer_inner_single(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_inner_single")
     reproduce_layer_batch(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_batch")
-    reproduce_layer_actdiff_batch(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_actdiff_batch")
 
 def test_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, layer, max_coeff, seed, sampling_kwargs, input_file_path):
     prompts = load_data(input_file_path, num_samples)
@@ -492,14 +438,15 @@ def test_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, la
     reproduce_layer_ht_count_senti(prompt_add, prompt_sub, prompts, steer_model, sentiment_model, layer, 19, seed, sampling_kwargs, 19, "19_actdiff_batch_senti")
 
 def test_batch(prompt_add, prompt_sub, steer_model, layer, coeff, seed, sampling_kwargs, input_file_path):
-    prompts = load_data(input_file_path, num_samples)
-    reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, coeff, "batch_all")
-    data2save = {"10": []}
-    for prompt in prompts:
-        ret_dict = reproduce_layer_batch(prompt_add, prompt_sub, [prompt], steer_model, layer, coeff, seed, sampling_kwargs, coeff)
-        data2save["10"].append(ret_dict["10"])
-    save2file(data2save, "batch_single")
-    
+    prompts = load_data(input_file_path, 1)
+    prompts = prompts * 8
+    reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, coeff, "reproduce_layer_batch")
+    ht_steer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, coeff, "ht_steer_batch")    
+    # for prompt in prompts:
+    #     ret_dict = reproduce_layer_batch(prompt_add, prompt_sub, [prompt], steer_model, layer, coeff, seed, sampling_kwargs, coeff)
+    #     data2save[10].append(ret_dict[10])
+    # save2file(data2save, "batch_single")
+
 
 if __name__ == '__main__':
     model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)

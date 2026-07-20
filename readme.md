@@ -837,14 +837,28 @@ results:
 - temperature=0, top_p=0.7, freq_penalty=0.0
   - all generated texts are the same
 
-the difference in generated text seem to be the temperature. There is a sentence generated in batch_subset at layer 10 with coeff 10 that matches the same prompt single generated with the same hyper-parameter.                 
-therefore the sentences in batch are steered, it's just their reproducibility is not guaranteed with different order/batch size. 
+conclusion:
+- the difference in generated text seem to be caused by the temperature. 
+- the first sentence generated in batch_subset at layer 10 with coeff 10 matches the same prompt single generated with the same hyper-parameter for the same prompt, for the following prompt, the generated text differ. the same pattern repeats with coeff 11.                
+
+therefore the sentences in batch are steered                    
+```
+(this is inferred from
+1. batch_size = 1 then the same results as steer single, 
+2. temperature = 0 all generated text are the same
+3. batch_size_8.json and batch_size_8_but_last.json, the difference in the last sentence only, where the latter has 
+            activation[:7, :steering_dim, :] += act_diff 
+)
+``` 
+it's just their reproducibility is not guaranteed with different order/batch size (and sometimes even with unchanged hyper-parameters). 
+
+**sidenote** on the gap between two groups of batch size according to gemini:
+- PyTorch calculates the total number of random variables it needs for the entire batch step, requests a single block of numbers of that size, and then shapes them into a matrix.
+- at batch_9, 10, PyTorch allocates the same random floats, with batch_9 dropping the last row
+- at batch_8 and lower, PyTorch allocates memory layout for up to 8 (a critical hardware optimization boundary (a power of 2)), which is different memory layout for batch 9 and 10. 
 
 ### batch logprobs: 
 as the tokeniser is different, there is no guarantee that the prompts let alone the generated test would be the same length after tokenisation. With padded tokens, the probability weight will change and therefore for the logprobs there should be no batch processing. 
-
-### TODOs
-- check the cause of batch/single difference
 
 ## reproducibility
 related to the previous subsection. during the reproducing with specific `layer` and `coeff`, different results are generated with the same random seeds. It is highly likely related to the re-using of `act_diff` and/or `editing_hooks`, given that 
