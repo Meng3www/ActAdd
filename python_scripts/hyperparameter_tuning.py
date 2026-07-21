@@ -8,7 +8,7 @@ from config import *
 from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
 from reproducibility import reproduce_layer_ht_count_senti
-from utils_aa import ht_count, load_data, pipeline_base_batch, save2file, ht_steer, batch_base_generate, remove_prompt 
+from utils_aa import ht_count, load_data, pipeline_base_batch, save2file, ht_steer, batch_base_generate, remove_prompt, ht_steer_batch 
 import time
 import torch
 import transformer_lens.utilities as utils
@@ -69,17 +69,16 @@ def baseline_senti(generate_model, sentiment_model, data_file_path, out_file):
     df_dict = base_df.to_dict(orient="records")
     save2file(df_dict, out_file) 
 
-def baseline(model, input_file_name, output_file_name):
+def baseline(model, prompts, output_file_name):
     """baseline generate without sentiment"""
     # load data
-    prompts = load_data(input_file_name, num_samples)
     base_df = batch_base_generate(prompts, model, seed, sampling_kwargs)
     base_df = remove_prompt(base_df)
     df_dict = base_df.to_dict(orient="records")
     save2file(df_dict, output_file_name) 
 
-def reprod_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, input_file_path, output_file_name):
-    prompts = load_data(input_file_path, num_samples)
+def reprod_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, input_file_name, output_file_name):
+    prompts = load_data(input_file_name, num_samples)
     n_layers = steer_model.cfg.n_layers
     start = time.time()
     counts_all = list()
@@ -90,31 +89,27 @@ def reprod_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, 
     print(counts_all)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")    
 
-def ht_steer_all_layers(prompt_add, prompt_sub, model, max_coeff, seed, sampling_kwargs, input_file_name, output_file_name):
-    prompts = load_data(input_file_name, num_samples)
+def ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, output_file_name):
     n_layers = model.cfg.n_layers
     start = time.time()
     for layer in range(n_layers):
         ht_steer(prompt_add, prompt_sub, prompts, model, layer, max_coeff, seed, sampling_kwargs, file_name=output_file_name)
-    # ht_steer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")    
 
-def ht_steer_all_layers_batch(prompt_add, prompt_sub, model, max_coeff, seed, sampling_kwargs, input_file_name, output_file_name):
+def ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, output_file_name):
     """
     try batch anyway with the 20 new prompts and then compare the results with ht_steer_all_layers
     """
-    prompts = load_data(input_file_name, num_samples)
     n_layers = model.cfg.n_layers
     start = time.time()
     for layer in range(n_layers):
-        ht_steer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, file_name=output_file_name)
-    # ht_steer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs)
+        ht_steer_batch(prompt_add, prompt_sub, prompts, model, layer, max_coeff, seed, sampling_kwargs, file_name=output_file_name)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins") 
 
 if __name__ == '__main__':
     model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
     # model_steer.enable_compatibility_mode() # this line causes oom error
-    print(f"baseline generating model loaded to {device}")
+    print(f"generating/steering model loaded to {device}")
     # load sentiment model
     # model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
     # print("sentiment model loaded")
@@ -123,12 +118,20 @@ if __name__ == '__main__':
     # baseline(model_generate, model_sentiment, "imdb_pos_opt.json", "baseline_pos_opt_hpt")    
     # quantitative(model_generate, model_sentiment, "imdb_pos_opt.json")
     
-    prompt_add, prompt_sub, input_file_path, layer = " love", " hate", "imdb_neg_llama.json", 10
+    input_file_name = "val_gemini.json"
+    prompts = load_data(input_file_name, num_samples)
+
     # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
     # prompt_add, prompt_sub, input_file_path, output_file_name = " hate", " love", "imdb_pos_opt.json", "pos2neg_opt_hpt"
     # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
     # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg_10")
-    test_ht_steer(prompt_add, prompt_sub, model_generate, layer, max_coeff, seed, sampling_kwargs, input_file_path)
-    
-    # baseline(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
+    # baseline_senti(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
+    # baseline(model_generate, prompts, "gemini_base_llama")
+    prompt_add, prompt_sub = " love", " hate"
+    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_llama")
+    ht_steer_all_layers_batch(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_llama_batch")
+    prompt_add, prompt_sub = " hate", " love"
+    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2neg_llama")
+    ht_steer_all_layers_batch(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2neg_llama_batch")
+
 

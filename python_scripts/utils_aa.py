@@ -197,7 +197,7 @@ def ht_steer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, see
 def ht_steer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="ht_steer_batch"):
     """
     reproduce_layer_actdiff_batch
-    reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
+    reproduce the results with a given layer, coeff from 1 (default) to max_coeff, on prompts
     all prompts are steered in batch, and with fresh editing_hooks
     the act_diff is re-used throughout
     the results are saved in a json file with coeff as the key, [{prompt, gen_text}] as the value
@@ -205,19 +205,8 @@ def ht_steer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coef
     dict_all = dict()
     act_diff_base = get_steering_vec_base(prompt_add, prompt_sub, steer_model, layer)
     for coeff in range(min_coeff, max_coeff+1):
-        act_diff = act_diff_base * coeff     
-        def add_activation(activation, hook):
-            if activation.shape[1] == 1: return
-            prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
-            try:
-                activation[:, :steering_dim, :] += act_diff
-            except:
-                print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
-        # generate with the steering vector
-        editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
-        generated_text = hooked_generate(prompts, editing_hooks, steer_model, seed, **sampling_kwargs)
-        df = pd.DataFrame({"prompt": prompts})
-        df["generated_text"] = generated_text
+        df = batch_steer(act_diff_base, prompts, steer_model, layer, coeff, seed, sampling_kwargs)
+        df = remove_prompt(df)
         df_dict = df.to_dict(orient="records")
         dict_all[coeff] = df_dict
     save2file(dict_all, f"{file_name}_{layer}")
