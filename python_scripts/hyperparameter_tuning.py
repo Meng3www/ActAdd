@@ -107,7 +107,7 @@ def ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff,
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins") 
 
 if __name__ == '__main__':
-    model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
+    model_generate = TransformerBridge.boot_transformers(path_opt, device=device)
     # model_steer.enable_compatibility_mode() # this line causes oom error
     print(f"generating/steering model loaded to {device}")
     # load sentiment model
@@ -126,12 +126,12 @@ if __name__ == '__main__':
     # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
     # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg_10")
     # baseline_senti(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
-    # baseline(model_generate, prompts, "gemini_base_llama")
+    baseline(model_generate, prompts, "gemini_base_opt")
     prompt_add, prompt_sub = " love", " hate"
-    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_llama")
-    ht_steer_all_layers_batch(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_llama_batch")
+    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_opt")
+    ht_steer_all_layers_batch(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_opt_batch")
     prompt_add, prompt_sub = " hate", " love"
-    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2neg_llama")
-    ht_steer_all_layers_batch(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2neg_llama_batch")
+    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2neg_opt")
+    ht_steer_all_layers_batch(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2neg_opt_batch")
 
 

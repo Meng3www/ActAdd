@@ -20,7 +20,8 @@ Disk: 47.1 / 112.6 GB
 | laiyer/unbiased-toxic-roberta-onnx | 628MB | [link](https://huggingface.co/protectai/unbiased-toxic-roberta-onnx) | alternative in the notebook |
 | Detoxify     | (2021)  | [link](https://github.com/unitaryai/detoxify) | toxicity score replacement |
 | roberta_toxicity_classifier | 500MB (2024) | [link](https://huggingface.co/s-nlp/roberta_toxicity_classifier) | toxicity score replacement |
-| Qwen2.5-7B    | 16GB   | [link](https://huggingface.co/Qwen/Qwen2.5-7B) | conditional perplexity, sentiment, available on cluster |
+| Qwen2.5-7B    | 16GB   | [link](https://huggingface.co/Qwen/Qwen2.5-7B) | conditional perplexity, available on cluster |
+| Qwen2.5-7B-Instruct | 16GB   | [link](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | sentiment, available on cluster |
 | ~~Gemini 2.5 Flash~~ | API | [link](https://discuss.ai.google.dev/t/get-logprobs-at-output-token-level/54418), [link](https://discuss.ai.google.dev/t/logprobs-is-not-enabled-for-gemini-models/107989/17) | **conditional perplexity? unstable/disabled** |
 
 | Dataset     | Disk Size | URL | note |
@@ -132,6 +133,24 @@ these are tried on the notebook and/or with the python script but none has worke
 So the solution would be to divide the pipeline into two scripts:
 - load the steering model to steer, sentiment model to do sentiment analysis, and embedding model for cosine similarity, save the result in file
 - load the file form the previous step and Qwen for logprob calculation in a different script.
+
+###
+solution from the notebook [logit lens on non-gpt2 models + extensions](https://colab.research.google.com/drive/1MjdfK2srcerLrAJDRaJQKO0sUiZ-hQtA?usp=sharing#scrollTo=UtzUqEPTC_CM) (to be tested)
+```
+import gc
+
+def cleanup_model(model):
+  try:
+    if hasattr(model, 'base_model_prefix') and len(model.base_model_prefix) > 0:
+      bm = getattr(model, model.base_model_prefix)
+      del bm
+    except:
+      pass
+    del model
+
+    gc.collect()
+    torch.cuda.empty_cache()
+```
 
 ## hyperparameter tuning 
 not detailed in the paper on how this is done, so brute force is used here for simplicity:       
@@ -787,6 +806,19 @@ This set will be used to do hyperparameter tuning for steering into both directi
 
 The sentiment model will be replaced by `Qwen2.5-7B`            
 - sentiment, cosine similarity and logprobs will be done after all generation is finished. 
+
+|        |model| b/s  |time (min)||||
+| ------ | --- | ---- | -------- | - | - | - |
+|baseline|llama| batch| NA       ||||
+| 2pos   |llama|single| 424.05   ||||
+| 2pos   |llama| batch| 36.28    ||||
+| 2neg   |llama|single| 437.33   ||||
+| 2neg   |llama| batch| 35.7     ||||
+|baseline| opt | batch| NA       ||||
+| 2pos   | opt |single|    ||||
+| 2pos   | opt | batch|     ||||
+| 2neg   | opt |single|    ||||
+| 2neg   | opt | batch|      ||||
 
 ## TODOs
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
