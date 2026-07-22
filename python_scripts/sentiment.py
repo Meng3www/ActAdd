@@ -34,7 +34,7 @@ def baseline(generate_model, sentiment_model, relevance_model, input_file_name, 
     save2file(df_dict, out_file_name) 
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     prompt_add, prompt_sub = " love", " hate"
     model_steer = TransformerBridge.boot_transformers(path_Llama3, device=device)
     print(f"steering model loaded to {device}")

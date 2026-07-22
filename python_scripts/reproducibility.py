@@ -52,7 +52,7 @@ def batch_steer2(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, see
     act_diff = act_diff_base * coeff
     print("pad act_diff to the same as activation.shape[1]. before padding: act_diff:", act_diff.shape)
     print(act_diff)
-    act_diff = torch.nn.functional.pad(input=act_diff, pad=(0, 0, 0, 30, 0, 0), mode='constant', value=0)
+    act_diff = torch.nn.functional.pad(input=act_diff, pad=(0, 0, 0, 30, 0, 0), mode="constant", value=0)
     print("after padding:", act_diff.shape)
     print(act_diff)
 
@@ -80,7 +80,7 @@ def batch_steer3(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, see
     act_diff = act_diff_base * coeff
     print("pad act_diff to the same as activation.shape. before padding: act_diff:", act_diff.shape)
     print(act_diff)
-    act_diff = torch.nn.functional.pad(input=act_diff, pad=(0, 0, 0, 30, 0, 0), mode='constant', value=0).repeat(len(prompts), 1, 1)
+    act_diff = torch.nn.functional.pad(input=act_diff, pad=(0, 0, 0, 30, 0, 0), mode="constant", value=0).repeat(len(prompts), 1, 1)
     print("after padding:", act_diff.shape)
     print(act_diff)
 
@@ -448,7 +448,7 @@ def test_batch(prompt_add, prompt_sub, steer_model, layer, coeff, seed, sampling
     # save2file(data2save, "batch_single")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
     print(f"baseline generating model loaded to {device}")
     # # model_sentiment = pipeline("sentiment-analysis", model=path_siebert)

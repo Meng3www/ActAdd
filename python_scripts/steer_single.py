@@ -11,7 +11,7 @@ device = utils.get_device()
 print("device:", device)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     layer, coeff = 10, 7
     # load steering model
     model_steer = TransformerBridge.boot_transformers(path_Llama3, device=device)

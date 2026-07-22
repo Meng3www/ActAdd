@@ -409,7 +409,7 @@ def pipeline_steer2batch(prompt_add, prompt_sub, prompts, steer_model, sentiment
     return df
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     layer, coeff, seed = 6, 5, 0
     sampling_kwargs = dict(temperature=1.0, top_p=1.0, freq_penalty=0.0)
     
