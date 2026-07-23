@@ -807,6 +807,7 @@ This set will be used to do hyperparameter tuning for steering into both directi
 The sentiment model will be replaced by `Qwen2.5-7B`            
 - sentiment, cosine similarity and logprobs will be done after all generation is finished. 
 
+generate
 |        |model| b/s  |time (min)||||
 | ------ | --- | ---- | -------- | - | - | - |
 |baseline|llama| batch| NA       ||||
@@ -815,10 +816,10 @@ The sentiment model will be replaced by `Qwen2.5-7B`
 | 2neg   |llama|single| 437.33   ||||
 | 2neg   |llama| batch| 35.7     ||||
 |baseline| opt | batch| NA       ||||
-| 2pos   | opt |single|    ||||
-| 2pos   | opt | batch|     ||||
-| 2neg   | opt |single|    ||||
-| 2neg   | opt | batch|      ||||
+| 2pos   | opt |single| 187.61   ||||
+| 2neg   | opt |single| 187.06   ||||
+- batch generates mostly the same sentences with different hyper-parameters. it is very likely due to the padding of the shorter sentences
+- opt steered sentences end before reaching the max generated token count with `[\u2026]` across all layers for both directions. The same thing happens once in the llama base, occasionally in early layers of llama steered 2neg. For imdb data with opt, this is less frequent
 
 ## TODOs
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
