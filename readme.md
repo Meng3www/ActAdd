@@ -808,14 +808,14 @@ The sentiment model will be replaced by `Qwen2.5-7B`
 - sentiment, cosine similarity and logprobs will be done after all generation is finished. 
 
 generate
-|        |model| b/s  |time (min)||||
-| ------ | --- | ---- | -------- | - | - | - |
-|baseline|llama| batch| NA       ||||
+|        |model| b/s  |time (min)|n_pos|n_neut|n_neg|
+| ------ | --- | ---- | -------- | --- | ---- | --- |
+|baseline|llama| batch| NA       | 12  | 8    | 0   |
 | 2pos   |llama|single| 424.05   ||||
-| 2pos   |llama| batch| 36.28    ||||
+| 2pos   |llama| batch| 36.28    | na  | na   | na  |
 | 2neg   |llama|single| 437.33   ||||
-| 2neg   |llama| batch| 35.7     ||||
-|baseline| opt | batch| NA       ||||
+| 2neg   |llama| batch| 35.7     | na  | na   | na  |
+|baseline| opt | batch| NA       | 7   | 13   | 0   |
 | 2pos   | opt |single| 187.61   ||||
 | 2neg   | opt |single| 187.06   ||||
 - batch generates mostly the same sentences with different hyper-parameters. it is very likely due to the padding of the shorter sentences

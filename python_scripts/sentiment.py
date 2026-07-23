@@ -96,7 +96,6 @@ def sentiment_eval_folder(model, tokeniser, folder_path):
             grid_zero[layer][coeff-1] = count_zero
         outfile_name = file_name[:file_name.rfind('_')] + "_senti" + file_name[file_name.rfind('_'):-5]
         save2file(dict2save, f"{outfile_name}")
-        break
     print(f"total time: {round((time.time() - start)/60, 2)} mins")
     print("grid_one", grid_one)
     print("grid_zero", grid_zero)
@@ -127,12 +126,12 @@ def add_sentiment():
     """
     tokeniser = AutoTokenizer.from_pretrained(path_qwen_sentiment, device_map="auto")
     model = AutoModelForCausalLM.from_pretrained(path_qwen_sentiment, device_map="auto")
-    sentiment_eval_file(model, tokeniser, "gemini_base_llama.json")
-    sentiment_eval_file(model, tokeniser, "gemini_base_opt.json")
+    # sentiment_eval_file(model, tokeniser, "gemini_base_llama.json")
+    # sentiment_eval_file(model, tokeniser, "gemini_base_opt.json")
     sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2pos_llama_hpt/")
-    # sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2neg_llama_hpt/")
-    # sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2pos_opt_hpt/")
-    # sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2neg_opt_hpt/")
+    sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2neg_llama_hpt/")
+    sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2pos_opt_hpt/")
+    sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2neg_opt_hpt/")
 
 if __name__ == "__main__":
     # prompt_add, prompt_sub = " love", " hate"
