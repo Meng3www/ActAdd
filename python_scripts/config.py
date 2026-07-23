@@ -4,7 +4,7 @@ path_siebert = "/scratch/common_models/SiEBERT/"
 path_all_MiniLM = "/scratch/common_models/all-MiniLM-L6-v2/"
 path_Llama3 = "/scratch/common_models/Meta-Llama-3-8B/"
 path_opt = "/scratch/common_models/opt-6.7b/"
-path_qwen_sentiment = "/scratch/common_models/Qwen2.5-7B-Instruct/"
+path_qwen_sentiment = "/scratch/common_models/Qwen2.5-7B-Instruct"
 path_qwen_logprobs = "/scratch/common_models/Qwen2.5-7B/"
 
 seed = 0

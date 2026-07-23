@@ -2,15 +2,17 @@ from config import *
 from torch.utils.data import DataLoader
 from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
 # from transformer_lens.model_bridge import TransformerBridge
-from utils_aa import ModelDataset, pipeline_base_batch, save2file
+from utils_aa import ModelDataset, pipeline_base_batch, save2file, reset_seed, load_data
 import pandas as pd
-import json, os, time
+import json, os, re, time
+import torch
 # import transformer_lens.utilities as utils
 
 # https://docs.runpod.io/serverless/development/huggingface-models
 # Force offline mode to use only cached models
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # device = utils.get_device()
 # print("device:", device)
 
@@ -35,7 +37,7 @@ def baseline(generate_model, sentiment_model, relevance_model, input_file_name, 
     df_dict = master_df.to_dict(orient="records")
     save2file(df_dict, out_file_name) 
 
-def sentiment(model, tokeniser, text):
+def sentiment(model, tokeniser, text, redo=False):
     """
     https://huggingface.co/learn/cookbook/en/llm_judge
     https://huggingface.co/HiTZ/gemma-2-9b-it-en-truth-judge
@@ -48,37 +50,89 @@ def sentiment(model, tokeniser, text):
     0 = Neutral or objective sentiment, or simply gibberish
     1 = Positive sentiment (optimism, success, joy, praise)
     Respond with EXACTLY one of the single numbers above and nothing else.
-    text provided by the user: {text}, sentiment rating: """
-    input_tokens = tokeniser(prompt, return_tensors="pt")
-    outputs = model.generate(**input_tokens, temperature=0)
+    text provided by the user: {text}, <sentiment rating>: """
+    input_tokens = tokeniser(prompt, return_tensors="pt").to(device)
+    outputs = model.generate(**input_tokens, temperature=0.01)
+    reset_seed(seed)
     judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
-    return judgement
+    rating = re.search("<sentiment rating>: [-10]*", judgement).group().split(": ")[1]
+    try:
+        rating = int(rating)
+    except:
+        print(f"{rating} is not an int, try again")
+        if redo:
+            return None
+        else:
+            rating = sentiment(model, tokeniser, text, True)
+    return rating
 
-def sentiment_eval_folder(model_path, folder_path):
+def sentiment_eval_folder(model, tokeniser, folder_path):
     """
     read json files in the folder, for each "generated_text", sentiment it
     the result is saved under "continuation_label"
     """
     start = time.time()
-    tokeniser = AutoTokenizer.from_pretrained(model_path, device_map="auto")
-    model = AutoModelForCausalLM.from_pretrained(model_path, device_map="auto")
+    grid_one = torch.zeros(32, max_coeff)  # a grid for the count of 1s
+    grid_zero = torch.zeros(32, max_coeff)
     for file_name in os.listdir(folder_path):
+        layer = int(file_name[file_name.rfind('_')+1:].split(".")[0])
         with open(f"{folder_path}{file_name}", "r") as f:
             r_dict = json.load(f) 
-            dict2save = dict()
-            for coeff in r_dict:
-                list_dict = r_dict[coeff]
-                list_dict_w_senti = list()
-                for dict_prompted in list_dict:
-                    text2eval = dict_prompted["generated_text"]
-                    continuation_label = sentiment(model, tokeniser, text2eval)
-                    print(text2eval)
-                    print(continuation_label)
-                dict2save[coeff] = list_dict_w_senti
-        outfile_name = file_name[:file_name.rfind('_')] + "_senti" + file_name[file_name.rfind('_'):]
-        print(outfile_name, dict2save)
+        dict2save = dict()  # for modified r_dict
+        for coeff in r_dict:
+            count_one, count_zero = 0, 0
+            list_dict = r_dict[coeff]
+            for dict_prompted in list_dict:
+                text2eval = dict_prompted["generated_text"]
+                continuation_label = sentiment(model, tokeniser, text2eval)
+                dict_prompted["continuation_label"] = continuation_label
+                if continuation_label == 0:
+                    count_zero += 1
+                elif continuation_label == 1:
+                    count_one += 1
+            dict2save[coeff] = list_dict
+            coeff = int(coeff)
+            grid_one[layer][coeff-1] = count_one
+            grid_zero[layer][coeff-1] = count_zero
+        outfile_name = file_name[:file_name.rfind('_')] + "_senti" + file_name[file_name.rfind('_'):-5]
+        save2file(dict2save, f"{outfile_name}")
         break
     print(f"total time: {round((time.time() - start)/60, 2)} mins")
+    print("grid_one", grid_one)
+    print("grid_zero", grid_zero)
+
+def sentiment_eval_file(model, tokeniser, file_name):
+    """
+    mainly for the baselines which resides in the data folder
+    """
+    list_dict = load_data(file_name)
+    count_one, count_zero = 0, 0
+    for dict_prompted in list_dict:
+        text2eval = dict_prompted["generated_text"]
+        continuation_label = sentiment(model, tokeniser, text2eval)
+        dict_prompted["continuation_label"] = continuation_label
+        if continuation_label == 0:
+            count_zero += 1
+        elif continuation_label == 1:
+            count_one += 1
+    outfile_name = file_name[:-5] + "_senti"
+    count_neg = len(list_dict) - count_one - count_zero
+    print(f"{count_one} possitive, {count_zero} neutral, {count_neg} negatives")
+    save2file(list_dict, f"{outfile_name}")
+
+def add_sentiment():
+    """
+    add sentiment result to the generated text
+    new set of json files will be generated
+    """
+    tokeniser = AutoTokenizer.from_pretrained(path_qwen_sentiment, device_map="auto")
+    model = AutoModelForCausalLM.from_pretrained(path_qwen_sentiment, device_map="auto")
+    sentiment_eval_file(model, tokeniser, "gemini_base_llama.json")
+    sentiment_eval_file(model, tokeniser, "gemini_base_opt.json")
+    sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2pos_llama_hpt/")
+    # sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2neg_llama_hpt/")
+    # sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2pos_opt_hpt/")
+    # sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2neg_opt_hpt/")
 
 if __name__ == "__main__":
     # prompt_add, prompt_sub = " love", " hate"
@@ -92,5 +146,4 @@ if __name__ == "__main__":
     # baseline(model_steer, model_sentiment, model_relevance, input_file_name, out_file_name)  
     # input_file_name, out_file_name = "imdb_pos_opt.json", "base_pos_opt_sent_simi"
     # baseline(model_steer, model_sentiment, model_relevance, input_file_name, out_file_name)  
-    folder_path = "/scratch/fmeng/ActAdd/results/gemini_2neg_llama_hpt/"
-    sentiment_eval_folder(path_qwen_sentiment, folder_path)
+    add_sentiment()
