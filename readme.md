@@ -808,18 +808,20 @@ The sentiment model will be replaced by `Qwen2.5-7B`
 - sentiment, cosine similarity and logprobs will be done after all generation is finished. 
 
 generate
-|        |model| b/s  |time (min)|n_pos|n_neut|n_neg|
-| ------ | --- | ---- | -------- | --- | ---- | --- |
-|baseline|llama| batch| NA       | 12  | 8    | 0   |
-| 2pos   |llama|single| 424.05   ||||
-| 2pos   |llama| batch| 36.28    | na  | na   | na  |
-| 2neg   |llama|single| 437.33   ||||
-| 2neg   |llama| batch| 35.7     | na  | na   | na  |
-|baseline| opt | batch| NA       | 7   | 13   | 0   |
-| 2pos   | opt |single| 187.61   ||||
-| 2neg   | opt |single| 187.06   ||||
+|        |model| b/s  |steer (min)|n_pos|n_neut|n_neg|layer,coeff|senti (min)|
+| ------ | --- | ---- | --------- | --- | ---- | --- | --------- | --------- |
+|baseline|llama| batch| NA        | 12  | 7    | 1   | na        | na        |
+| 2pos   |llama|single| 424.05    | 15  | 5    | 0   | 7, 10     | 44.63     |
+| 2pos   |llama| batch| 36.28     | na  | na   | na  | | na        |
+| 2neg   |llama|single| 437.33    ||||   | |
+| 2neg   |llama| batch| 35.7      | na  | na   | na  | | na        |
+|baseline| opt | batch| NA        | 8   | 12   | 0   | na        | na        |
+| 2pos   | opt |single| 187.61    ||||   || 
+| 2neg   | opt |single| 187.06    ||||   || 
 - batch generates mostly the same sentences with different hyper-parameters. it is very likely due to the padding of the shorter sentences
 - opt steered sentences end before reaching the max generated token count with `[\u2026]` across all layers for both directions. The same thing happens once in the llama base, occasionally in early layers of llama steered 2neg. For imdb data with opt, this is less frequent
+
+![gemini, 2pos, llama](graphs/gemini_2pos_llama.png "gemini, 2pos, llama")
 
 ## TODOs
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?

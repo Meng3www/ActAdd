@@ -58,11 +58,14 @@ def sentiment(model, tokeniser, text):
     judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
     len_prompt = len(prompt)
     rating_raw = judgement[len_prompt:]
-    rating_str = rating_raw[:rating_raw.lfind("</sentiment>")].strip()
+    print(rating_raw)  ####
+    rating_str = rating_raw[:rating_raw.find("</sentiment>")].strip()
+    rating_str = re.findall(r"[-01]+", rating_str)[0]
+    print(rating_str)
     try:
         rating = int(rating_str)
     except:
-        print(f"{rating} is not an int, return none")
+        print(f"{rating_str} is not an int, return none")
         return None
     return rating
 
@@ -77,8 +80,8 @@ def sentiment_eval_folder(model, tokeniser, folder_path):
     grid_neg = torch.zeros(32, max_coeff)
     for file_name in os.listdir(folder_path):
         layer = int(file_name[file_name.rfind('_')+1:].split(".")[0])
-        with open(f"{folder_path}{file_name}", "r") as f:
-        # with open(f"{folder_path}gemini_2pos_llama_21.json", "r") as f:
+        # with open(f"{folder_path}{file_name}", "r") as f:
+        with open(f"{folder_path}gemini_2neg_llama_4.json", "r") as f:  #### gemini_2neg_llama_senti_31.json
             r_dict = json.load(f) 
         dict2save = dict()  # for modified r_dict
         for coeff in r_dict:
@@ -101,7 +104,7 @@ def sentiment_eval_folder(model, tokeniser, folder_path):
             grid_zero[layer][coeff-1] = count_zero
             grid_neg[layer][coeff-1] = count_neg
         outfile_name = file_name[:file_name.rfind('_')] + "_senti" + file_name[file_name.rfind('_'):-5]
-        save2file(dict2save, f"{outfile_name}")
+        # save2file(dict2save, outfile_name)
     print(f"total time: {round((time.time() - start)/60, 2)} mins")
     print(f"grid_one for {folder_path}", grid_one)
     print(f"grid_zero for {folder_path}", grid_zero)
@@ -134,12 +137,12 @@ def add_sentiment():
     """
     tokeniser = AutoTokenizer.from_pretrained(path_qwen_sentiment, device_map="auto")
     model = AutoModelForCausalLM.from_pretrained(path_qwen_sentiment, device_map="auto")
-    sentiment_eval_file(model, tokeniser, "gemini_base_llama.json")
-    sentiment_eval_file(model, tokeniser, "gemini_base_opt.json")
-    sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2pos_llama_hpt/")
+    # sentiment_eval_file(model, tokeniser, "gemini_base_llama.json")
+    # sentiment_eval_file(model, tokeniser, "gemini_base_opt.json")
+    # sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2pos_llama_hpt/")
     sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2neg_llama_hpt/")
-    sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2pos_opt_hpt/")
-    sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2neg_opt_hpt/")
+    # sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2pos_opt_hpt/")
+    # sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_2neg_opt_hpt/")
 
 if __name__ == "__main__":
     # prompt_add, prompt_sub = " love", " hate"
