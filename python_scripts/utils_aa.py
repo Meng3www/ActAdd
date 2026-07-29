@@ -78,7 +78,7 @@ def get_conditional_ppl(model, tokeniser, prompt, continuation):
     # average negative log probabilities
     ce = -torch.mean(logprobs)
     # exponentiate
-    return torch.exp(ce)
+    return torch.exp(ce).item()
 
 def load_data(file_name, slice=0):
     """

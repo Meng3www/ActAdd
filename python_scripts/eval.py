@@ -6,18 +6,13 @@ import json, time
 
 def add_fluency(model, tokeniser, file_path):
     start = time.time()
-    # /scratch/fmeng/ActAdd/results/sentiment_imdb/base_neg_llama_sent_simi.json
     with open(file_path, "r") as f:
         r_list = json.load(f) 
-    counter = 0
     for dict in r_list:
         dict["fluency"] = get_conditional_ppl(model, 
                                               tokeniser, 
                                               dict["prompt"], 
                                               dict["generated_text"])
-        counter += 1
-        if counter > 3:
-            break
     idx_begin = file_path.rfind("/") + 1
     outfile_name = file_path[idx_begin:].split(".")[0] + "_fl"
     save2file(r_list, outfile_name)  
@@ -27,7 +22,14 @@ def add_fluency(model, tokeniser, file_path):
 if __name__ == "__main__":
     model = AutoModelForCausalLM.from_pretrained(path_qwen_logprobs, device_map='auto')
     tokeniser = AutoTokenizer.from_pretrained(path_qwen_logprobs, device_map='auto')
-    add_fluency(model, tokeniser, "/scratch/fmeng/ActAdd/results/sentiment_imdb/base_neg_llama_sent_simi.json")
+    # /scratch/fmeng/ActAdd/results/sentiment_imdb/base_neg_llama_sent_simi.json
+    file_list = ["base_neg_llama_sent_simi.json", 
+                 "base_neg_opt_sent_simi.json", 
+                 "base_pos_llama_sent_simi.json", 
+                 "base_pos_opt_sent_simi.json"]
+    for file in file_list:
+        add_fluency(model, tokeniser, f"/scratch/fmeng/ActAdd/results/sentiment_imdb/{file}")
+
     # text = "I went to the store "
     # continuation = "to buy apples and milk."
     # ppl = get_conditional_ppl(model, tokeniser, text, continuation)
