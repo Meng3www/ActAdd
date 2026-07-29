@@ -47,7 +47,7 @@ def get_steering_vec_base(prompt_add, prompt_sub, steer_model, layer):
     act_diff = act_add - act_sub
     return act_diff
 
-def get_logprobs(model, tokeniser, text):
+def get_ppl(model, tokeniser, text):
     print("text: ", text)
     tokens = tokeniser(text, return_tensors="pt").to(model.device)
     print("model_inputs: ", tokens)
