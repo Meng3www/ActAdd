@@ -47,26 +47,34 @@ def get_steering_vec_base(prompt_add, prompt_sub, steer_model, layer):
     act_diff = act_add - act_sub
     return act_diff
 
-def get_ppl(model, tokeniser, text):
-    print("text: ", text)
+def get_logprobs(model, tokeniser, text):
+    """
+    continuation is the generated text without the prompt
+    while in the original code the authors use the complete generated text 
+    """
     tokens = tokeniser(text, return_tensors="pt").to(model.device)
-    print("model_inputs: ", tokens)
     with torch.no_grad():
         outputs = model(**tokens)
-    print("outputs.logits: ", outputs.logits.shape, outputs.logits)
     token_idx_vocab = tokens.input_ids.squeeze(0)[1:]
-    print("token_idx_vocab, ", token_idx_vocab.shape, token_idx_vocab)
     output_logsm = torch.nn.functional.log_softmax(outputs.logits, dim = -1)
-    print("output_logsm", output_logsm.shape, output_logsm)
     # corresponding to the actual next token observed in the test sequence
     token_idx_seq = torch.arange(token_idx_vocab.shape[0])
     output_logsm = output_logsm[:, :-1, :] 
-    print("output_logsm.shape", output_logsm.shape)
-    token_logprobs = output_logsm.squeeze(0)[token_idx_seq, token_idx_vocab]
-    print("token_logprobs", token_logprobs.shape, token_logprobs)
+    token_logprobs = output_logsm.squeeze(0)[token_idx_seq, token_idx_vocab]  # torch.Size([6])
+    return token_logprobs
+
+def get_conditional_ppl(model, tokeniser, prompt, continuation):
+    """
+    continuation is the generated text without the prompt
+    while in the original code the authors use the complete generated text 
+    """
+    logprobs_complete = get_logprobs(model, tokeniser, prompt+continuation)
+    print("ppl of the complete sentence: ", torch.exp(-torch.mean(logprobs_complete)))
+    logprobs_prompt = get_logprobs(model, tokeniser, prompt)
+    print("ppl of the prompt: ", torch.exp(-torch.mean(logprobs_prompt)))
+    logprobs = logprobs_complete[len(logprobs_prompt):]
     # average negative log probabilities
-    ce = -torch.mean(token_logprobs)
-    print("ce", ce)
+    ce = -torch.mean(logprobs)
     # exponentiate
     return torch.exp(ce)
 
