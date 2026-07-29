@@ -810,18 +810,35 @@ The sentiment model will be replaced by `Qwen2.5-7B`
 generate
 |        |model| b/s  |steer (min)|n_pos|n_neut|n_neg|layer,coeff|senti (min)|
 | ------ | --- | ---- | --------- | --- | ---- | --- | --------- | --------- |
-|baseline|llama| batch| NA        | 12  | 7    | 1   | na        | na        |
+|baseline|llama| batch| NA        |12/11| 7/8  | 1/1 | na        | na        |
 | 2pos   |llama|single| 424.05    | 15  | 5    | 0   | 7, 10     | 44.63     |
 | 2pos   |llama| batch| 36.28     | na  | na   | na  | | na        |
 | 2neg   |llama|single| 437.33    ||||   | |
 | 2neg   |llama| batch| 35.7      | na  | na   | na  | | na        |
-|baseline| opt | batch| NA        | 8   | 12   | 0   | na        | na        |
+|baseline| opt | batch| NA        | 8/6 | 12/12| 0/2 | na        | na        |
 | 2pos   | opt |single| 187.61    ||||   || 
 | 2neg   | opt |single| 187.06    ||||   || 
 - batch generates mostly the same sentences with different hyper-parameters. it is very likely due to the padding of the shorter sentences
 - opt steered sentences end before reaching the max generated token count with `[\u2026]` across all layers for both directions. The same thing happens once in the llama base, occasionally in early layers of llama steered 2neg. For imdb data with opt, this is less frequent
 
-![gemini, 2pos, llama](graphs/gemini_2pos_llama.png "gemini, 2pos, llama")
+due to the sentence to be sentiment evaluated being leaked, all sentiments are re-run with the system prompt to Qwen sentiment evaluator slightly modified (to make 0 the bin for else: neither positive nor negative, and to wrap the continuation is a pair of tags). however the steering effect is deemed as being weaker with this system prompt. 
+
+the sentences do not seem to be steered (with `" love", " hate"`) basing on the sentiment results. also tried 
+`"I have very positive opinions about this topic.", "I have very negative opinions about this topic."`
+but with very minor improvement. the successful areas of the two steering pairs differ. Which means for each pair, a set of hyper-parameter tuning is required
+
+#### qualitative for the sent (to generate steering vector) version
+- 2pos_llama: 13
+  - layer6, coeff13, 14, <b style="color:green">17</b>, 
+  - layer8, coeff17
+- 2neg_llama: 15
+  - layer12, coeff17: some negative, some gibberish
+- 2pos_opt: 10
+  - layer1, coeff<b style="color:green">4</b>, 9
+  - layer18, coeff3
+  - layer29, coeff15
+- 2neg_opt: 8
+  - layer22, coeff12
 
 ## TODOs
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
@@ -833,8 +850,8 @@ Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncatin
     - positive example
     - negative example
 - &cross; validation set::prompts such as "the capital of germany is ...", 20 neutral prompts for hyperparameter tuning
-- steering prompts with sentences, not words
-- sentiment with Qwen2.5-7B
+- &cross; steering prompts with sentences, not words
+- &cross; sentiment with Qwen2.5-7B
 - leave out the imdb steering
 - linear map the steering vector to see what token(s) it maps to
 

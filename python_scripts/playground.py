@@ -1,7 +1,10 @@
+from config import *
 from utils_aa import prompts2tokens, get_steering_vec_base
+from transformer_lens.model_bridge import TransformerBridge
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import transformer_lens.utilities as utils
 
 
 # linear map the steering vector to see what token(s) it maps to
@@ -135,6 +138,24 @@ def normalised2tokens(normalised_state, model):
     decoded_logits = [logits[it, argmax[it]].item() for it in range(len(argmax))]
     return tokens, decoded_logits
 
+"""
+text_tokens base 34 ['', '1', ':', 'sun', 'shine', ',', ' 2', ':', 'apple', ',', ' 3', ':', 'ko', 'ala', ',', ' 2', ':', 'apple', ',', ' 1', ':', 'sun', 'shine', ',', ' 3', ':', 'ko', 'ala', ',', ' 1', ':', 'sun', 'shine', ',']
+text_tokens_steered 31 ['', '1', ':', 'sun', 'shine', ',', ' 2', ':', 'apple', ',', ' 3', ':', 'ko', 'ala', ',', ' 2', ':', 'apple', ',', ' 1', ':', 'sun', 'shine', ',', ' 3', ':', 'ko', 'ala', ',', ' 1', ':']
+layer:: 0
+Traceback (most recent call last):
+  File "/scratch/fmeng/ActAdd/python_scripts/playground.py", line 202, in <module>
+    map_vec2tokens(prompt_add, prompt_sub, model, layer)
+  File "/scratch/fmeng/ActAdd/python_scripts/playground.py", line 116, in map_vec2tokens
+    decoded_token_add, _ = normalised2tokens(normalised_add, model)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fmeng/ActAdd/python_scripts/playground.py", line 138, in normalised2tokens
+    decoded_logits = [logits[it, argmax[it]].item() for it in range(len(argmax))]
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: a Tensor with 100544 elements cannot be converted to Scalar
+(airconed_env) bash-5.1$
+
+"""
+
 def steer_with_logitlens(prompt_add, prompt_sub, model, device, layer, coeff, input):
     input_tokens = model.to_tokens(input).to(device)
     act_diff_base = get_steering_vec_base(prompt_add, prompt_sub, model, layer)
@@ -165,6 +186,39 @@ def steer_with_logitlens(prompt_add, prompt_sub, model, device, layer, coeff, in
     logits = list(decoded_intermediate_logit.values()) # [num_layers, seq_len]
     return {"text_tokens":text_tokens, "decoded_tokens": tokens, "decoded_logits": logits}
 
+def compare(device, model, text, prompt_add, prompt_sub, layer, coeff, num_2vis, tokens_to_gen):
+    dict_output = decode_token_with_logitlens(model, device, text, tokens_to_gen)
+    decoded_tokens = dict_output['decoded_tokens']
+    decoded_logits = dict_output['decoded_logits']
+    text_tokens = dict_output['text_tokens']
+    print("text_tokens base", len(text_tokens), text_tokens)
+    to_viz = (len(text_tokens)-num_2vis, len(text_tokens))
+    plot_logitlens(to_viz, decoded_tokens, decoded_logits, text_tokens)
+
+    steered_dict = steer_with_logitlens(prompt_add, prompt_sub, model, device, layer, coeff, text)
+    decoded_tokens_steered = steered_dict['decoded_tokens']
+    decoded_logits_steered = steered_dict['decoded_logits']
+    text_tokens_steered = steered_dict['text_tokens']
+    print("text_tokens_steered", len(text_tokens_steered), text_tokens_steered)
+    to_viz = (len(text_tokens_steered)-num_2vis, len(text_tokens_steered))
+    plot_logitlens(to_viz, decoded_tokens_steered, decoded_logits_steered, text_tokens_steered)
+
 
 if __name__ == "__main__":
-    pass
+    device = utils.get_device()
+    print("device:", device)
+    text = "1:sunshine, 2:apple, 3:koala, 2:apple, 1:sunshine, 3:koala, 1:"
+    model = TransformerBridge.boot_transformers(path_opt, device=device)
+    to_viz = (20,34)
+    prompt_add, prompt_sub = " love", " hate"
+    layer, coeff = 10, 10
+
+    compare(device, model, text, prompt_add, prompt_sub, layer, coeff, 10, 3)
+
+    for layer in [0, 8, 15, 23, 31]:
+        print("layer::", layer)
+        map_vec2tokens(prompt_add, prompt_sub, model, layer)
+
+    # Anton Harlan
+    anton = "This film was probably inspired by Godard's Masculin, f\u00e9minin and I urge you to see that film instead.<br /><br"
+    compare(device, model, anton, prompt_add, prompt_sub, 15, 1, 10, 3)

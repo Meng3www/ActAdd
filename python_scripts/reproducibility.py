@@ -246,6 +246,38 @@ def reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, 
     save2file(dict_all, file_name)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")
 
+def reproduce_layer_single_return(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="reproduce_layer_single_return"):
+    """
+    reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
+    each prompt is steered one by one, and with fresh act_diff and editing_hooks
+    the results are saved in a json file with coeff as the key, [{prompt, gen_text}] as the value
+    """
+    print("reproduce_layer_single_return")
+    dict_all = dict()
+    start = time.time()
+    for coeff in range(min_coeff, max_coeff+1):
+        print(f"coeff={coeff}")
+        list_prompted = list()
+        for prompt in prompts:
+            dict_prompt = {"prompt": prompt}
+            act_diff_base = get_steering_vec_base(prompt_add, prompt_sub, steer_model, layer)
+            act_diff = act_diff_base * coeff
+            def add_activation(activation, hook):
+                if activation.shape[1] == 1: return
+                prompt_dim, steering_dim = activation.shape[1], act_diff.shape[1]
+                try:
+                    activation[:, :steering_dim, :] += act_diff
+                    return activation  ####
+                except:
+                    print(f"More mod tokens ({steering_dim}) than prompt tokens ({prompt_dim})!")
+            editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
+            gen_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)        
+            dict_prompt["generated_text"] = gen_text
+            list_prompted.append(dict_prompt)
+        dict_all[coeff] = list_prompted
+    save2file(dict_all, file_name)
+    print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")   
+
 def reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="reproduce_layer_actdiff_single_inner"):
     """
     reproduce the results with a given layer, coeff from 1 to max_coeff, on prompts
@@ -418,18 +450,19 @@ def test_specific(prompt_add, prompt_sub, steer_model, layer, coeff, seed, sampl
     """
     layer, coeff: the specific layer, coeff to be checked
     """
-    prompts = load_data(input_file_path, num_samples)
+    prompts = load_data(input_file_path, 10)
     reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_single")
     reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_actdiff_single_inner")
     reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_actdiff_single_outer")
     reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_inner_single")
     reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_batch")
-    prompts_subset = prompts[3:5] 
-    reproduce_layer_single(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_single")
-    reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_actdiff_single_inner")
-    reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_actdiff_single_outer")
-    reproduce_layer_inner_single(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_inner_single")
-    reproduce_layer_batch(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_batch")
+    reproduce_layer_single_return(prompt_add, prompt_sub, prompts, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "coeff_single_return")
+    # prompts_subset = prompts[3:5] 
+    # reproduce_layer_single(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_single")
+    # reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_actdiff_single_inner")
+    # reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_actdiff_single_outer")
+    # reproduce_layer_inner_single(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_inner_single")
+    # reproduce_layer_batch(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_batch")
 
 def test_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, layer, max_coeff, seed, sampling_kwargs, input_file_path):
     prompts = load_data(input_file_path, num_samples)
@@ -449,12 +482,12 @@ def test_batch(prompt_add, prompt_sub, steer_model, layer, coeff, seed, sampling
 
 
 if __name__ == "__main__":
-    model_generate = TransformerBridge.boot_transformers(path_Llama3, device=device)
+    model_generate = TransformerBridge.boot_transformers(path_llama, device=device)
     print(f"baseline generating model loaded to {device}")
     # # model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
     # # print("sentiment model loaded")
     prompt_add, prompt_sub, input_file_path, layer = " love", " hate", "imdb_neg_llama.json", 10
     # test_whole_layer(prompt_add, prompt_sub, model_generate, layer, max_coeff, seed, sampling_kwargs, input_file_path)
-    # test_specific(prompt_add, prompt_sub, model_generate, layer, 19, seed, sampling_kwargs, input_file_path)
+    test_specific(prompt_add, prompt_sub, model_generate, layer, 10, seed, sampling_kwargs, input_file_path)
     # test_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, layer, max_coeff, seed, sampling_kwargs, input_file_path)
-    test_batch(prompt_add, prompt_sub, model_generate, layer, 10, seed, sampling_kwargs, input_file_path)
+    # test_batch(prompt_add, prompt_sub, model_generate, layer, 10, seed, sampling_kwargs, input_file_path)
