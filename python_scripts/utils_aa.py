@@ -1,7 +1,7 @@
 import json
 import numpy as np
 import pandas as pd
-import random
+import random, gc
 import torch
 from config import *
 from sklearn.metrics.pairwise import cosine_similarity
@@ -13,6 +13,18 @@ def reset_seed(seed=seed):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
+
+def cleanup_model(model):
+    try:
+        if hasattr(model, 'base_model_prefix') and len(model.base_model_prefix) > 0:
+            bm = getattr(model, model.base_model_prefix)
+            del bm
+    except:
+        pass
+    del model
+
+    gc.collect()
+    torch.cuda.empty_cache()
 
 def prompts2tokens(prompt_add, prompt_sub, model):
     """
@@ -130,14 +142,31 @@ def steer2batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed
     df["generated_text"] = generated_texts
     return df
 
-def steer_single(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, file_name=""):
+def base_generate(model, prompts, sampling_kwargs, file_name):
+    """
+    base generate prompts and then save the results in json format
+    """
+    gen_all = list()
+    for prompt in prompts:
+        gen_case = {"prompt": prompt}
+        generated_text = model.generate(
+                input=prompt,
+                max_new_tokens=max_new_tokens, 
+                do_sample=True, 
+                **sampling_kwargs
+            )
+        gen_case["generated_text"] = generated_text[len(prompt):] 
+        gen_all.append(gen_case)
+    save2file(gen_all, file_name)
+
+def steer_single(prompt_add, prompt_sub, prompts, model, layer, coeff, seed, sampling_kwargs, file_name=""):
     """
     steering prompts one by one using the activation from `prompt_add-prompt_sub`
     the result is saved in json format in file_name
     """
     steered_all = list()
     # get the steering vector
-    act_diff_base = get_steering_vec_base(prompt_add, prompt_sub, steer_model, layer)
+    act_diff_base = get_steering_vec_base(prompt_add, prompt_sub, model, layer)
     act_diff = act_diff_base *coeff
     def add_activation(activation, hook):
         if activation.shape[1] == 1: return
@@ -151,10 +180,10 @@ def steer_single(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, see
     editing_hooks = [(f"blocks.{layer}.hook_resid_pre", add_activation)]
     for prompt in prompts:
         steering_case = {"prompt": prompt}
-        generated_text = hooked_generate(prompt, editing_hooks, steer_model, seed, **sampling_kwargs)
-        steering_case["generated_text"] = generated_text 
+        generated_text = hooked_generate(prompt, editing_hooks, model, seed, **sampling_kwargs)
+        steering_case["generated_text"] = generated_text[len(prompt):] 
         steered_all.append(steering_case)
-    print(len(steered_all), " documents steered")
+    # print(len(steered_all), " documents steered")
     if file_name:
         save2file(steered_all, file_name)
 

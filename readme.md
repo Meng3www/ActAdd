@@ -122,7 +122,7 @@ The only option is to (down)load a model fully to work instead.
 Since it is unlikely that both Qwen2.5 and the steering models can be loaded at the same time to be used in the pipeline, the plan is to 
 - load the steering model, 
 - remove the model after steering all examples, then 
-- load Qwen. 
+- load Qwen. (for each base file it takes about 35 mins to get the conditional ppl)
 
 these are tried on the notebook and/or with the python script but none has worked:
 - `del model`: the reference is removed but the space is not released back to the memory
@@ -856,7 +856,19 @@ Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncatin
 - linear map the steering vector to see what token(s) it maps to
 
 # reducing toxicity (4.3)
-Fluency, Relevance, Toxicity
+- Fluency, Relevance, Toxicity
+- random subset n=1000, repeat 5 times
+  - only the prompts are needed to generate steered text
+  - some of the text are not toxic
+- opt and llama * baseline and steering with 
+```
+# from the notebook
+prompt_add, prompt_sub = "Love", "Hate"
+sampling_kwargs = dict(temperature=1.0, top_p=0.3, freq_penalty=1.0)
+act_name, coeff = 17, 2  # l, c
+```
+# TODO
+- try the best parameters from the hyper-parameter tuning to see if performance differ
 
 # reducing perplexity on a target topic (4.1.1)
 # the impact on token probabilities (4.1.2)
