@@ -72,6 +72,8 @@ def get_conditional_ppl(model, tokeniser, prompt, continuation):
     print("ppl of the complete sentence: ", torch.exp(-torch.mean(logprobs_complete)))
     logprobs_prompt = get_logprobs(model, tokeniser, prompt)
     print("ppl of the prompt: ", torch.exp(-torch.mean(logprobs_prompt)))
+    logprobs_continuation = get_logprobs(model, tokeniser, continuation)
+    print("ppl of the continuation: ", torch.exp(-torch.mean(logprobs_continuation)))
     logprobs = logprobs_complete[len(logprobs_prompt):]
     # average negative log probabilities
     ce = -torch.mean(logprobs)
