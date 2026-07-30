@@ -16,12 +16,11 @@ def toxicity(model, prompt_add, prompt_sub, layer, coeff, outfile_name):
     """
     for i in range(5):
         prompts = load_data(f"tox_samples_{i}.json")
-        print(f"data loaded from tox_samples_{i}.json")
         start = time.time()
         steer_single(prompt_add=prompt_add,   
                     prompt_sub=prompt_sub, 
                     prompts=prompts, 
-                    steer_model=model, 
+                    model=model, 
                     layer=layer, 
                     coeff=coeff, 
                     seed=seed, 
@@ -43,12 +42,12 @@ if __name__ == "__main__":
     # print("sentiment model loaded")
     # model_relevance = SentenceTransformer(path_all_MiniLM)
     # print("relevance model loaded")
-    toxicity(model_llama, prompt_add, prompt_sub, layer, coeff, f"llama_{layer}-{coeff}")
-    layer, coeff = 22, 13  # hpt
-    toxicity(model_llama, prompt_add, prompt_sub, layer, coeff, f"llama_{layer}-{coeff}")
-    prompt_add, prompt_sub = " love", " hate"
-    layer, coeff = 17, 2 
-    toxicity(model_llama, prompt_add, prompt_sub, layer, coeff, f"llama_{layer}-{coeff}_space")
+    # toxicity(model_llama, prompt_add, prompt_sub, layer, coeff, f"llama_{layer}-{coeff}")
+    # layer, coeff = 22, 13  # hpt
+    # toxicity(model_llama, prompt_add, prompt_sub, layer, coeff, f"llama_{layer}-{coeff}")
+    # prompt_add, prompt_sub = " love", " hate"
+    # layer, coeff = 17, 2 
+    # toxicity(model_llama, prompt_add, prompt_sub, layer, coeff, f"llama_{layer}-{coeff}_space")
     layer, coeff = 22, 13  # hpt
     toxicity(model_llama, prompt_add, prompt_sub, layer, coeff, f"llama_{layer}-{coeff}_space")
 

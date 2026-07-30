@@ -840,6 +840,34 @@ but with very minor improvement. the successful areas of the two steering pairs 
 - 2neg_opt: 8
   - layer22, coeff12
 
+### evaluation/result analysis
+#### baseline statistics
+```
+Statistics of /content/base_neg_llama_sent_simi_fl.json
+    Sample size: 25000
+    Success: 8763
+    Average perplexity of continuations: 36.379264975510196
+    Average relevance of continuations: 0.3773900469460893
+
+Statistics of /content/base_pos_llama_sent_simi_fl.json
+    Sample size: 25000
+    Success: 5918
+    Average perplexity of continuations: 34.790486575809574
+    Average relevance of continuations: 0.3854748718832615
+
+Statistics of /content/base_neg_opt_sent_simi_fl.json
+    Sample size: 25000
+    Success: 8796
+    Average perplexity of continuations: 36.46317349214863
+    Average relevance of continuations: 0.37725159220170185
+
+Statistics of /content/base_pos_opt_sent_simi_fl.json
+    Sample size: 25000
+    Success: 6011
+    Average perplexity of continuations: 41.31799394594642
+    Average relevance of continuations: 0.38409541165197225
+```
+
 ## TODOs
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
 - &cross; check if different lengths in the prompts destroys the batch pipeline
@@ -852,7 +880,7 @@ Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncatin
 - &cross; validation set::prompts such as "the capital of germany is ...", 20 neutral prompts for hyperparameter tuning
 - &cross; steering prompts with sentences, not words
 - &cross; sentiment with Qwen2.5-7B
-- leave out the imdb steering
+- &cross; leave out the imdb steering
 - linear map the steering vector to see what token(s) it maps to
 
 # reducing toxicity (4.3)
