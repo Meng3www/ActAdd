@@ -134,8 +134,7 @@ So the solution would be to divide the pipeline into two scripts:
 - load the steering model to steer, sentiment model to do sentiment analysis, and embedding model for cosine similarity, save the result in file
 - load the file form the previous step and Qwen for logprob calculation in a different script.
 
-###
-<b style="color:green">working solution</b> from the notebook [logit lens on non-gpt2 models + extensions](https://colab.research.google.com/drive/1MjdfK2srcerLrAJDRaJQKO0sUiZ-hQtA?usp=sharing#scrollTo=UtzUqEPTC_CM) 
+solution from the notebook [logit lens on non-gpt2 models + extensions](https://colab.research.google.com/drive/1MjdfK2srcerLrAJDRaJQKO0sUiZ-hQtA?usp=sharing#scrollTo=UtzUqEPTC_CM) 
 ```
 import gc
 
@@ -151,6 +150,7 @@ def cleanup_model(model):
     gc.collect()
     torch.cuda.empty_cache()
 ```
+no change of `torch.cuda.memory_allocated()` before and after the cleanup
 
 ## hyperparameter tuning 
 not detailed in the paper on how this is done, so brute force is used here for simplicity:       
@@ -963,6 +963,8 @@ it's just their reproducibility is not guaranteed with different order/batch siz
 - at batch_8 and lower, PyTorch allocates memory layout for up to 8 (a critical hardware optimization boundary (a power of 2)), which is different memory layout for batch 9 and 10. 
 
 **takeawaynote** should use `temperature=0` when possible for mech interp experiments
+with `dict(temperature=0, top_p=1.0, freq_penalty=0.0)` the results of the batch steer and single steer are the same. but the generated sentence repeats itself quite a lot
+
 
 ### batch logprobs: 
 as the tokeniser is different, there is no guarantee that the prompts let alone the generated test would be the same length after tokenisation. With padded tokens, the probability weight will change and therefore for the logprobs there should be no batch processing. 
