@@ -135,7 +135,7 @@ So the solution would be to divide the pipeline into two scripts:
 - load the file form the previous step and Qwen for logprob calculation in a different script.
 
 ###
-solution from the notebook [logit lens on non-gpt2 models + extensions](https://colab.research.google.com/drive/1MjdfK2srcerLrAJDRaJQKO0sUiZ-hQtA?usp=sharing#scrollTo=UtzUqEPTC_CM) (to be tested)
+<b style="color:green">working solution</b> from the notebook [logit lens on non-gpt2 models + extensions](https://colab.research.google.com/drive/1MjdfK2srcerLrAJDRaJQKO0sUiZ-hQtA?usp=sharing#scrollTo=UtzUqEPTC_CM) 
 ```
 import gc
 
@@ -885,7 +885,7 @@ Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncatin
 - qualitative examples on the report
 - adding toxicity (validate the result on the good negative steering capability) to different languages
 - qwen3guard-8b for toxicity
-- 
+- instead of simply recording the number of possitive and negative, it's more meaningful to record the number of cases where the base is one sentiment, and the steered result is another
 
 # reducing toxicity (4.3)
 - Fluency, Relevance, Toxicity

@@ -52,7 +52,6 @@ if __name__ == "__main__":
     toxicity(model_llama, prompt_add, prompt_sub, layer, coeff, f"llama_{layer}-{coeff}_space")
 
     cleanup_model(model_llama)
-    print("model removed")
     prompt_add, prompt_sub = "Love", "Hate"
     model_opt = TransformerBridge.boot_transformers(path_opt, device=device)
     print(f"new steering model loaded to {device}")

@@ -15,6 +15,7 @@ def reset_seed(seed=seed):
     torch.cuda.manual_seed(seed)
 
 def cleanup_model(model):
+    print("before del", torch.cuda.memory_allocated())
     try:
         if hasattr(model, 'base_model_prefix') and len(model.base_model_prefix) > 0:
             bm = getattr(model, model.base_model_prefix)
@@ -25,6 +26,8 @@ def cleanup_model(model):
 
     gc.collect()
     torch.cuda.empty_cache()
+    print("after del", torch.cuda.memory_allocated())
+
 
 def prompts2tokens(prompt_add, prompt_sub, model):
     """
