@@ -963,8 +963,8 @@ it's just their reproducibility is not guaranteed with different order/batch siz
 - at batch_8 and lower, PyTorch allocates memory layout for up to 8 (a critical hardware optimization boundary (a power of 2)), which is different memory layout for batch 9 and 10. 
 
 **takeawaynote** should use `temperature=0` when possible for mech interp experiments
-with `dict(temperature=0, top_p=1.0, freq_penalty=0.0)` the results of the batch steer and single steer are the same. but the generated sentence repeats itself quite a lot
-
+- with `dict(temperature=0, top_p=1.0, freq_penalty=0.0)` the results of the batch steer and single steer are the same. but the generated sentence repeats itself quite a lot 
+- with `freq_penalty=1.0` there is no change. the same results as when it is 0
 
 ### batch logprobs: 
 as the tokeniser is different, there is no guarantee that the prompts let alone the generated test would be the same length after tokenisation. With padded tokens, the probability weight will change and therefore for the logprobs there should be no batch processing. 

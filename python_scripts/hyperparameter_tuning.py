@@ -8,7 +8,7 @@ from config import *
 # from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
 from reproducibility import reproduce_layer_ht_count_senti
-from utils_aa import ht_count, load_data, pipeline_base_batch, save2file, ht_steer, batch_base_generate, remove_prompt, ht_steer_batch 
+from utils_aa import ht_count, load_data, pipeline_base_batch, save2file, ht_steer, batch_base_generate, remove_prompt, ht_steer_batch, reset_seed
 import time
 import torch
 import transformer_lens.utilities as utils
@@ -69,13 +69,21 @@ def baseline_senti(generate_model, sentiment_model, data_file_path, out_file):
     df_dict = base_df.to_dict(orient="records")
     save2file(df_dict, out_file) 
 
-def baseline(model, prompts, output_file_name):
+def baseline(model, prompts, output_file_name, sampling_kwargs):
     """baseline generate without sentiment"""
-    # load data
-    base_df = batch_base_generate(prompts, model, seed, sampling_kwargs)
-    base_df = remove_prompt(base_df)
-    df_dict = base_df.to_dict(orient="records")
-    save2file(df_dict, output_file_name) 
+    ret_list = list()
+    for prompt in prompts:
+        prompt_dict = {"prompt": prompt}
+        reset_seed(seed)
+        generated_text = model.generate(
+                input=prompt,
+                max_new_tokens=max_new_tokens, 
+                do_sample=True, 
+                **sampling_kwargs
+            )
+        prompt_dict["generated_text"] = generated_text
+        ret_list.append(prompt_dict)
+    save2file(ret_list, output_file_name) 
 
 def reprod_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, input_file_name, output_file_name):
     prompts = load_data(input_file_name, num_samples)
@@ -107,29 +115,33 @@ def ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff,
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins") 
 
 if __name__ == "__main__":
-    model_generate = TransformerBridge.boot_transformers(path_opt, device=device)
+    model_generate = TransformerBridge.boot_transformers(path_llama, device=device)
     # model_steer.enable_compatibility_mode() # this line causes oom error
     print(f"generating/steering model loaded to {device}")
-    # load sentiment model
-    # model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
-    # print("sentiment model loaded")
+
     # 08.07 two baselines and quantitative for opt pos2neg
     # baseline(model_generate, model_sentiment, "imdb_neg_opt.json", "baseline_neg_opt_hpt")
     # baseline(model_generate, model_sentiment, "imdb_pos_opt.json", "baseline_pos_opt_hpt")    
     # quantitative(model_generate, model_sentiment, "imdb_pos_opt.json")
     
     input_file_name = "val_gemini.json"
-    prompts = load_data(input_file_name, num_samples)
+    prompts = load_data(input_file_name, 20)
 
     # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
-    # prompt_add, prompt_sub, input_file_path, output_file_name = " hate", " love", "imdb_pos_opt.json", "pos2neg_opt_hpt"
+    # prompt_add, prompt_sub, input_file_path, output_file_name = "Hate", "Love", "imdb_pos_opt.json", "pos2neg_opt_hpt"
     # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
     # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg_10")
     # baseline_senti(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
-    # baseline(model_generate, prompts, "gemini_base_opt")
+    baseline(model_generate, prompts, "gemini_base_llama_temp_0", sampling_kwargs)
+    
+    prompt_add, prompt_sub = "Love", "Hate"
+    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_llama_temp_0_no_space")
+    prompt_add, prompt_sub = "Hate", "Love"
+    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2neg_llama_temp_0_no_space")
+
     prompt_add, prompt_sub = "I have very positive opinions about this topic.", "I have very negative opinions about this topic."
-    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2pos_opt")
+    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2pos_llama_temp_0")
     prompt_add, prompt_sub = "I have very negative opinions about this topic.", "I have very positive opinions about this topic."
-    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2neg_opt")
+    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2neg_llama_temp_0")
 
 
