@@ -106,7 +106,7 @@ def ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed,
 
 def ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, output_file_name):
     """
-    try batch anyway with the 20 new prompts and then compare the results with ht_steer_all_layers
+    try batch with the 20 new prompts and then compare the results with ht_steer_all_layers
     """
     n_layers = model.cfg.n_layers
     start = time.time()
@@ -115,7 +115,7 @@ def ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff,
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins") 
 
 if __name__ == "__main__":
-    model_generate = TransformerBridge.boot_transformers(path_llama, device=device)
+    model_generate = TransformerBridge.boot_transformers(path_opt, device=device)
     # model_steer.enable_compatibility_mode() # this line causes oom error
     print(f"generating/steering model loaded to {device}")
 
@@ -132,17 +132,17 @@ if __name__ == "__main__":
     # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
     # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg_10")
     # baseline_senti(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
-    baseline(model_generate, prompts, "gemini_base_llama_temp_0", sampling_kwargs)
+    baseline(model_generate, prompts, "gemini_base_opt_temp_0", sampling_kwargs)
     
     prompt_add, prompt_sub = "Love", "Hate"
-    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_llama_temp_0_no_space")
+    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_opt_temp_0_no_space")
     prompt_add, prompt_sub = "Hate", "Love"
-    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2neg_llama_temp_0_no_space")
+    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2neg_opt_temp_0_no_space")
 
     prompt_add, prompt_sub = "I have very positive opinions about this topic.", "I have very negative opinions about this topic."
-    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2pos_llama_temp_0")
+    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2pos_opt_temp_0")
     prompt_add, prompt_sub = "I have very negative opinions about this topic.", "I have very positive opinions about this topic."
-    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2neg_llama_temp_0")
+    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2neg_opt_temp_0")
     # talking about bridge
     prompt_add, prompt_sub = "I talk about Golden Gate Bridge", "I never talk about Golden Gate Bridge" 
-    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_bridge_llama")
+    ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_bridge_opt")
