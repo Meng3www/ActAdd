@@ -144,5 +144,7 @@ if __name__ == "__main__":
     prompt_add, prompt_sub = "I have very negative opinions about this topic.", "I have very positive opinions about this topic."
     ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2neg_opt_temp_0")
     # talking about bridge
-    prompt_add, prompt_sub = "I talk about Golden Gate Bridge", "I never talk about Golden Gate Bridge" 
+    prompt_add, prompt_sub = "I talk about the Golden Gate Bridge", "I never talk about the Golden Gate Bridge" 
     ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_bridge_opt")
+    print("all tasks finished")
+    
