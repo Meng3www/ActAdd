@@ -28,7 +28,6 @@ def cleanup_model(model):
     torch.cuda.empty_cache()
     print("after del", torch.cuda.memory_allocated())
 
-
 def prompts2tokens(prompt_add, prompt_sub, model):
     """
     check token length of each prompt, pad right to the same token len
@@ -120,6 +119,24 @@ def save2file(data2save, file_name, file_type="json"):
     elif file_type == "parquet": # not convinient for qualitative tasks
         data2save.to_parquet(f"{dir_output}{file_name}.gzip", compression="gzip")
         print(f"file saved as {dir_output}{file_name}.gzip")
+
+def get_outfile_name(infile_name, tag2add):
+    """
+    helper function to get the outfile name after adding tag2add
+    for this project, either llama or opt is used
+    infile_name could be a path by mistake
+    returns outfile_name
+    """
+    if "/" in infile_name:  # get the name part
+        idx_begin = infile_name.rfind("/") + 1
+        infile_name = infile_name[idx_begin:]
+    file_name = infile_name.split(".")[0]
+    if "opt" in file_name:
+        idx_split = file_name.find("opt") + len("opt")
+    if "llama" in file_name:
+        idx_split = file_name.find("llama") + len("llama")
+    outfile_name = file_name[:idx_split]+ "_" + tag2add + file_name[idx_split:]
+    return outfile_name
 
 def steer2batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs):
     """
