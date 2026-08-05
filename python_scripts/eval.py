@@ -1,7 +1,7 @@
 from config import *
-# from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 from utils_aa import get_conditional_ppl, save2file, get_outfile_name
-import json, os, re, time
+import json, os, time
 
 
 def add_fluency2file(model, tokeniser, file_path):
@@ -10,13 +10,14 @@ def add_fluency2file(model, tokeniser, file_path):
     list of dictionary containing "prompt" and "generated_text"
     """
     start = time.time()
+    print("adding fl to file::", file_path)
     with open(file_path, "r") as f:
         r_list = json.load(f) 
-    for dict in r_list:
-        dict["fluency"] = get_conditional_ppl(model, 
+    for dict_item in r_list:
+        dict_item["fluency"] = get_conditional_ppl(model, 
                                               tokeniser, 
-                                              dict["prompt"], 
-                                              dict["generated_text"])
+                                              dict_item["prompt"], 
+                                              dict_item["generated_text"])
     outfile_name = get_outfile_name(file_path, "fl")
     save2file(r_list, outfile_name)  
     print(f"total time: {round((time.time() - start)/60, 2)} mins")
@@ -25,42 +26,44 @@ def add_fluency2dir(model, tokeniser, dir_path):
     """
     read json files in the path
     """
-    # start = time.time()
-    print("directory::", dir_path)
+    start = time.time()
+    print("adding fl to directory::", dir_path)
     for file_name in os.listdir(dir_path):
         with open(f"{dir_path}{file_name}", "r") as f:
-            r_dict = json.load(f)  #### change object in place?
-        dict2save = dict()  # for modified r_dict
+            r_dict = json.load(f) 
         for coeff in r_dict:
             list_dict = r_dict[coeff]
-            for dict_prompted in list_dict:
-                dict_prompted["continuation_label"] = 1                
-            dict2save[coeff] = list_dict
-        # outfile_name = get_outfile_name(file_name, "fl")
-        save2file(r_dict, "test_r_dict")
-        save2file(dict2save, "test_dict2save")
-        break  ####
+            for dict_item in list_dict:
+                dict_item["fluency"] = get_conditional_ppl(model, 
+                                                    tokeniser, 
+                                                    dict_item["prompt"], 
+                                                    dict_item["generated_text"])          
+        outfile_name = get_outfile_name(file_name, "fl")
+        save2file(r_dict, outfile_name)
+        # break  ####
+    print(f"total time: {round((time.time() - start)/60, 2)} mins")
 
 def add_fl():
-    # model = AutoModelForCausalLM.from_pretrained(path_qwen_logprobs, device_map='auto')
-    # tokeniser = AutoTokenizer.from_pretrained(path_qwen_logprobs, device_map='auto')
-    # data_file_list = ["gemini_base_llama_temp_0.json", "gemini_base_opt_temp_0.json"]
-    # for file in data_file_list:
-    #     add_fluency2file(model, tokeniser, f"/scratch/fmeng/ActAdd/data/{file}")
+    model = AutoModelForCausalLM.from_pretrained(path_qwen_logprobs, device_map='auto')
+    tokeniser = AutoTokenizer.from_pretrained(path_qwen_logprobs, device_map='auto')
+    data_file_list = ["gemini_base_llama_temp_0.json", "gemini_base_opt_temp_0.json"]
+    for file in data_file_list:
+        add_fluency2file(model, tokeniser, f"/scratch/fmeng/ActAdd/data/{file}")
 
     file_dirs = ["gemini_2neg_llama_temp_0_no_space_hpt", 
-                    "gemini_2neg_opt_temp_0_no_space_hpt", 
-                    "gemini_2pos_llama_temp_0_no_space_hpt", 
-                    "gemini_2pos_opt_temp_0_no_space_hpt", 
-                    "gemini_bridge_llama_hpt", 
-                    "gemini_bridge_opt_hpt", 
-                    "gemini_sent_2neg_llama_temp_0_hpt", 
-                    "gemini_sent_2neg_opt_temp_0_hpt", 
-                    "gemini_sent_2pos_llama_temp_0_hpt", 
-                    "gemini_sent_2pos_opt_temp_0_hpt"]
+                "gemini_2neg_opt_temp_0_no_space_hpt", 
+                "gemini_2pos_llama_temp_0_no_space_hpt", 
+                "gemini_2pos_opt_temp_0_no_space_hpt", 
+                "gemini_bridge_llama_hpt", 
+                "gemini_bridge_opt_hpt", 
+                "gemini_sent_2neg_llama_temp_0_hpt", 
+                "gemini_sent_2neg_opt_temp_0_hpt", 
+                "gemini_sent_2pos_llama_temp_0_hpt", 
+                "gemini_sent_2pos_opt_temp_0_hpt"]
 
     for dir in file_dirs:
-        add_fluency2dir("model", "tokeniser", f"/scratch/fmeng/ActAdd/results/{dir}/")
+        add_fluency2dir(model, tokeniser, f"/scratch/fmeng/ActAdd/results/{dir}/")
+    print("safe to abort")
 
 
 if __name__ == "__main__":
