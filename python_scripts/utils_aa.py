@@ -145,13 +145,14 @@ def steer2batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed
     df["generated_text"] = generated_texts
     return df
 
-def base_generate(model, prompts, sampling_kwargs, file_name):
+def base_generate(model, prompts, sampling_kwargs, out_file_name):
     """
     base generate prompts and then save the results in json format
     """
     gen_all = list()
     for prompt in prompts:
         gen_case = {"prompt": prompt}
+        reset_seed(seed)
         generated_text = model.generate(
                 input=prompt,
                 max_new_tokens=max_new_tokens, 
@@ -160,7 +161,7 @@ def base_generate(model, prompts, sampling_kwargs, file_name):
             )
         gen_case["generated_text"] = generated_text[len(prompt):] 
         gen_all.append(gen_case)
-    save2file(gen_all, file_name)
+    save2file(gen_all, out_file_name)
 
 def steer_single(prompt_add, prompt_sub, prompts, model, layer, coeff, seed, sampling_kwargs, file_name=""):
     """

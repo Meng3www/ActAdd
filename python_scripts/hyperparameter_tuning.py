@@ -8,7 +8,7 @@ from config import *
 # from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
 from reproducibility import reproduce_layer_ht_count_senti
-from utils_aa import ht_count, load_data, pipeline_base_batch, save2file, ht_steer, batch_base_generate, remove_prompt, ht_steer_batch, reset_seed
+from utils_aa import ht_count, load_data, pipeline_base_batch, save2file, ht_steer, ht_steer_batch, base_generate
 import time
 import torch
 import transformer_lens.utilities as utils
@@ -69,22 +69,6 @@ def baseline_senti(generate_model, sentiment_model, data_file_path, out_file):
     df_dict = base_df.to_dict(orient="records")
     save2file(df_dict, out_file) 
 
-def baseline(model, prompts, output_file_name, sampling_kwargs):
-    """baseline generate without sentiment"""
-    ret_list = list()
-    for prompt in prompts:
-        prompt_dict = {"prompt": prompt}
-        reset_seed(seed)
-        generated_text = model.generate(
-                input=prompt,
-                max_new_tokens=max_new_tokens, 
-                do_sample=True, 
-                **sampling_kwargs
-            )
-        prompt_dict["generated_text"] = generated_text
-        ret_list.append(prompt_dict)
-    save2file(ret_list, output_file_name) 
-
 def reprod_ht_count_senti(prompt_add, prompt_sub, steer_model, sentiment_model, input_file_name, output_file_name):
     prompts = load_data(input_file_name, num_samples)
     n_layers = steer_model.cfg.n_layers
@@ -132,7 +116,7 @@ if __name__ == "__main__":
     # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
     # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg_10")
     # baseline_senti(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
-    baseline(model_generate, prompts, "gemini_base_opt_temp_0", sampling_kwargs)
+    base_generate(model_generate, prompts, sampling_kwargs, "gemini_base_opt_temp_0")
     
     prompt_add, prompt_sub = "Love", "Hate"
     ht_steer_all_layers(prompt_add, prompt_sub, model_generate, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_opt_temp_0_no_space")
