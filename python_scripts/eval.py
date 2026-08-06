@@ -46,23 +46,23 @@ def add_fluency2dir(model, tokeniser, dir_path):
 def add_fl():
     model = AutoModelForCausalLM.from_pretrained(path_qwen_logprobs, device_map='auto')
     tokeniser = AutoTokenizer.from_pretrained(path_qwen_logprobs, device_map='auto')
-    data_file_list = ["gemini_base_llama_temp_0.json", "gemini_base_opt_temp_0.json"]
+    data_file_list = ["gemini_base_llama_senti.json", "gemini_base_opt_senti.json"]
     for file in data_file_list:
         add_fluency2file(model, tokeniser, f"/scratch/fmeng/ActAdd/data/{file}")
 
-    file_dirs = ["gemini_2neg_llama_temp_0_no_space_hpt", 
-                "gemini_2neg_opt_temp_0_no_space_hpt", 
-                "gemini_2pos_llama_temp_0_no_space_hpt", 
-                "gemini_2pos_opt_temp_0_no_space_hpt", 
-                "gemini_bridge_llama_hpt", 
-                "gemini_bridge_opt_hpt", 
-                "gemini_sent_2neg_llama_temp_0_hpt", 
-                "gemini_sent_2neg_opt_temp_0_hpt", 
-                "gemini_sent_2pos_llama_temp_0_hpt", 
-                "gemini_sent_2pos_opt_temp_0_hpt"]
+    # file_dirs = ["gemini_2neg_llama_temp_0_no_space_hpt", 
+    #             "gemini_2neg_opt_temp_0_no_space_hpt", 
+    #             "gemini_2pos_llama_temp_0_no_space_hpt", 
+    #             "gemini_2pos_opt_temp_0_no_space_hpt", 
+    #             "gemini_bridge_llama_hpt", 
+    #             "gemini_bridge_opt_hpt", 
+    #             "gemini_sent_2neg_llama_temp_0_hpt", 
+    #             "gemini_sent_2neg_opt_temp_0_hpt", 
+    #             "gemini_sent_2pos_llama_temp_0_hpt", 
+    #             "gemini_sent_2pos_opt_temp_0_hpt"]
 
-    for dir in file_dirs:
-        add_fluency2dir(model, tokeniser, f"/scratch/fmeng/ActAdd/results/{dir}/")
+    # for dir in file_dirs:
+    #     add_fluency2dir(model, tokeniser, f"/scratch/fmeng/ActAdd/results/{dir}/")
     print("safe to abort")
 
 
