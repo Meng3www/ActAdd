@@ -55,7 +55,7 @@ def sentiment(model, tokeniser, text):
     text provided by the user: <text>{text}</text>, <sentiment>"""
     input_tokens = tokeniser(prompt, return_tensors="pt").to(device)
     reset_seed(seed)
-    outputs = model.generate(**input_tokens, max_new_tokens=7, temperature=0.01)
+    outputs = model.generate(**input_tokens, max_new_tokens=8, temperature=0.001)
     judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
     len_prompt = len(prompt)
     rating_raw = judgement[len_prompt:]
@@ -65,7 +65,7 @@ def sentiment(model, tokeniser, text):
     else:
         print(text)
         reset_seed(seed)
-        outputs = model.generate(**input_tokens, max_new_tokens=27, temperature=0.01)
+        outputs = model.generate(**input_tokens, max_new_tokens=32, temperature=0.001)
         judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
         print(judgement[len_prompt:])
     try:
@@ -98,33 +98,21 @@ def sentiment_plus(model, tokeniser, text):
     1 = moderate repetition 
     2 = no noticeable repetition 
 
-    Please only give the judgement in the following XML format, 
-    each tag should contain only one number, no explanation is needed:
-    `<s>-1|0|1</s><f>0|1|2</f><r>0|1|2</r>`
+    text: <text>{text}</text>
 
-    text: <text>{text}</text>"""
+    Please **only** give the judgement in the following XML format, 
+    with `x` being replaced with the score you give; 
+    each tag should contain only one number:
+    `<s>x</s><f>x</f><r>x</r>` 
+    you must not give any other response, or change any of the tags.
+    """
     input_tokens = tokeniser(prompt, return_tensors="pt").to(device)
     reset_seed(seed)
-    outputs = model.generate(**input_tokens, max_new_tokens=16, temperature=0.01)
+    outputs = model.generate(**input_tokens, max_new_tokens=32, temperature=0.001)
     judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
     len_prompt = len(prompt)
     rating_raw = judgement[len_prompt:]
-    print(rating_raw)  # "fluency_qualit"
-    # rating_str = re.findall(r"[-01]+", rating_raw)
-    # if rating_str:
-    #     rating_str = rating_str[0]
-    # else:
-    #     print(text)
-    #     reset_seed(seed)
-    #     outputs = model.generate(**input_tokens, max_new_tokens=27, temperature=0.01)
-    #     judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
-    #     print(judgement[len_prompt:])
-    # try:
-    #     rating = int(rating_str)
-    # except:
-    #     print(f"{rating_str} is not an int, return none")
-    #     return None
-    # return rating
+    print("-----------------------------------\n", rating_raw, "\n-----------------------------------")  
 
 def bridge_plus(model, tokeniser, text):
     """
@@ -148,33 +136,97 @@ def bridge_plus(model, tokeniser, text):
     1 = moderate repetition 
     2 = no noticeable repetition 
 
-    Please only give the judgement in the following XML format, 
-    each tag should contain only one number, no explanation is needed:
-    `<b>-1|0|1</b><f>0|1|2</f><r>0|1|2</r>`
-
-    text: <text>{text}</text>"""
+    text: <text>{text}</text>
+    
+    Please **only** give the judgement in the following XML format, 
+    with `x` being replaced with the score you give; 
+    each tag should contain only one number:
+    `<b>x</b><f>x</f><r>x</r>` 
+    you must not give any other response, or change any of the tags.
+    """
     input_tokens = tokeniser(prompt, return_tensors="pt").to(device)
     reset_seed(seed)
-    outputs = model.generate(**input_tokens, max_new_tokens=16, temperature=0.01)
+    outputs = model.generate(**input_tokens, max_new_tokens=32, temperature=0.001)
     judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
     len_prompt = len(prompt)
     rating_raw = judgement[len_prompt:]
-    print(rating_raw)
-    # rating_str = re.findall(r"[-01]+", rating_raw)
-    # if rating_str:
-    #     rating_str = rating_str[0]
-    # else:
-    #     print(text)
-    #     reset_seed(seed)
-    #     outputs = model.generate(**input_tokens, max_new_tokens=27, temperature=0.01)
-    #     judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
-    #     print(judgement[len_prompt:])
-    # try:
-    #     rating = int(rating_str)
-    # except:
-    #     print(f"{rating_str} is not an int, return none")
-    #     return None
-    # return rating
+    print("-----------------------------------\n", rating_raw, "\n-----------------------------------")
+
+def prompt_gibberish(text):
+    """
+    prompt_template for "gibberish"
+    """
+    prompt = f"""You are an objective, precise evaluation judge. 
+        Your task is to evaluate the gibberish-ness of a random section of a sentence enclosed in <text> tags. 
+        Rate it as 0 or 1 where: 
+        1 = totally ungrammatical, unreadable gibberish that can't even be English
+        0 = might be incomplete but still readable, and can be part of a longer text
+        Please do not rate it as gibberish due to its incompleteness:  
+        text: <text>{text}</text>, 
+        Respond with EXACTLY one of the single numbers above after `<gibberish>`. 
+        Please do not provide any number other than 0, 1, as the rating.  
+        Close the tag with a `</gibberish>` after the rating immediately without white space. 
+        <gibberish>"""
+    return prompt
+
+def prompt_repetition(text):
+    """
+    prompt_template for "repetition"
+    """
+    prompt = f"""You are an objective, precise evaluation judge. 
+        Your task is to evaluate the repetitiveness of the text enclosed in <text> tags. 
+        Rate it as 0 or 1 where: 
+        0 = no noticeable repetition of any clause, or multiple repetition of a word in a row
+        1 = with repeated clauses, or unusual repetition of words or phrases
+        Respond with EXACTLY one of the single numbers above after `<repetition>`. 
+        Please do not provide any number other than 0, 1, as the rating.  
+        Close the tag with a `</repetition>` after the rating immediately without white space
+        text: <text>{text}</text>, <repetition>"""
+    return prompt
+
+def prompt_bridge(text):
+    """
+    prompt_template for "bridge"
+    """
+    prompt = f"""You are an objective, precise evaluation judge. 
+        Your task is to evaluate if the text enclosed in <text> tags talks about bridges. 
+        Rate it as 0 or 1 where: 
+        0 = no mention of any bridge 
+        1 = talks about the Golden Gate Bridge or other bridges
+        Respond with EXACTLY one of the single numbers above after `<bridge>`. 
+        Please do not provide any number other than 0, 1, as the rating.  
+        Close the tag with a `</bridge>` after the rating immediately without white space
+        text: <text>{text}</text>, <bridge>"""
+    return prompt
+
+def judge(model, tokeniser, prompt_template, text):
+    """
+    llm as judge for evaluations with 3 categories: 0, 1, 2
+    """
+    prompt = prompt_template(text)
+    input_tokens = tokeniser(prompt, return_tensors="pt").to(device)
+    reset_seed(seed)
+    outputs = model.generate(**input_tokens, max_new_tokens=8, temperature=0.001)
+    judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
+    len_prompt = len(prompt)
+    rating_raw = judgement[len_prompt:]
+    # print(text)
+    # print(rating_raw)
+    rating_str = re.findall(r"[01]+", rating_raw)
+    if rating_str:
+        rating_str = rating_str[0]
+    else:
+        print(text)
+        reset_seed(seed)
+        outputs = model.generate(**input_tokens, max_new_tokens=32, temperature=0.001)
+        judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
+        print(judgement[len_prompt:])
+    try:
+        rating = int(rating_str)
+    except:
+        print(f"{rating_str} is not an int, return none")
+        return None
+    return rating
 
 def sentiment_eval_folder(model, tokeniser, folder_path):
     """
@@ -253,7 +305,7 @@ def add_sentiment():
     sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_sent_2pos_opt_hpt/")
     sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_sent_2neg_opt_hpt/")
 
-def parse_path(model, tokeniser, func, path):
+def parse_path_func(model, tokeniser, func, path):
     """
     func: sentiment_plus or bridge_plus
     path to a directory or to a json file
@@ -269,11 +321,13 @@ def parse_path(model, tokeniser, func, path):
                 for dict_item in list_dict:
                     text2eval = dict_item["generated_text"]
                     func(model, tokeniser, text2eval)
+                break  ####
             if "sentiment" in func.__name__:
                 outfile_name = get_outfile_name(file_name, "senti+")
             else:
                 outfile_name = get_outfile_name(file_name, "brid+")        
             print("outfile_name: ", outfile_name)
+            break  ####
     elif path.endswith(".json"):
         print("parsing file", path)
         with open(path, "r") as f:
@@ -282,10 +336,61 @@ def parse_path(model, tokeniser, func, path):
             text2eval = dict_item["generated_text"]
             func(model, tokeniser, text2eval)
         if "sentiment" in func.__name__:
-            outfile_name = get_outfile_name(file_name, "senti+")
+            outfile_name = get_outfile_name(path, "senti+")
         else:
-            outfile_name = get_outfile_name(file_name, "brid+")        
+            outfile_name = get_outfile_name(path, "brid+")        
         print("outfile_name: ", outfile_name)
+    else:
+        print("cannot parse the path", path)
+    print(f"total time: {round((time.time() - start)/60, 2)} mins")
+
+def add_eval(model, tokeniser, template_group, dict):
+    """
+    template_group: "senti" or "bridge"
+    dict: "generated_text"
+    add evaluation results to dict
+    """
+    text2eval = dict["generated_text"] 
+    if template_group == "senti":
+        dict["continuation_label"] = sentiment(model, tokeniser, text2eval)
+    else: 
+        dict["bridge"] = judge(model, tokeniser, prompt_bridge, text2eval)
+    dict["gibberish"] = judge(model, tokeniser, prompt_gibberish, text2eval)
+    dict["repetition"] = judge(model, tokeniser, prompt_repetition, text2eval)
+
+def parse_path_template(model, tokeniser, template_group, path):
+    """
+    template_group: "senti" or "bridge"
+    path to a directory or to a json file
+    """
+    start = time.time()
+    if path.endswith("/"):  # a dir
+        print("parsing directory", path)
+        for file_name in os.listdir(path):
+            with open(f"{path}{file_name}", "r") as f:
+                r_dict = json.load(f) 
+            for coeff in r_dict:
+                list_dict = r_dict[coeff]
+                for dict_item in list_dict:
+                    add_eval(model, tokeniser, template_group, dict_item)
+            if template_group == "senti":
+                outfile_name = get_outfile_name(file_name, "senti+")
+            else:
+                outfile_name = get_outfile_name(file_name, "bridge+")        
+            print("outfile_name: ", outfile_name)
+            save2file(r_dict, outfile_name)
+    elif path.endswith(".json"):
+        print("parsing file", path)
+        with open(path, "r") as f:
+            r_list = json.load(f)
+        for dict_item in r_list:
+            add_eval(model, tokeniser, template_group, dict_item)
+        if template_group == "senti":
+            outfile_name = get_outfile_name(path, "senti+")
+        else:
+            outfile_name = get_outfile_name(path, "bridge+")        
+        print("outfile_name: ", outfile_name)
+        save2file(r_list, outfile_name)
     else:
         print("cannot parse the path", path)
     print(f"total time: {round((time.time() - start)/60, 2)} mins")
@@ -294,8 +399,21 @@ def test_plus():
     tokeniser = AutoTokenizer.from_pretrained(path_qwen_sentiment, device_map="auto")
     model = AutoModelForCausalLM.from_pretrained(path_qwen_sentiment, device_map="auto")
     print("model loaded to ", device)
-    parse_path(model, tokeniser, sentiment_plus, "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_llama_fl_temp_0.json")
-    parse_path(model, tokeniser, bridge_plus, "/scratch/fmeng/ActAdd/results/gemini_bridge_llama_fl_hpt/gemini_bridge_llama_fl_23.json")
+    # parse_path_template(model, tokeniser, "senti", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_llama_fl_temp_0.json")
+    # parse_path_template(model, tokeniser, "senti", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_opt_fl_temp_0.json")
+    list_dirs = ["gemini_2neg_llama_fl_temp_0_no_space_hpt", 
+                 "gemini_2neg_opt_fl_temp_0_no_space_hpt", 
+                 "gemini_2pos_llama_fl_temp_0_no_space_hpt", 
+                 "gemini_2pos_opt_fl_temp_0_no_space_hpt", 
+                 "gemini_sent_2neg_llama_fl_temp_0_hpt", 
+                 "gemini_sent_2neg_opt_fl_temp_0_hpt", 
+                 "gemini_sent_2pos_llama_fl_temp_0_hpt", 
+                 "gemini_sent_2pos_opt_fl_temp_0_hpt"]
+    for dir in list_dirs:
+        parse_path_template(model, tokeniser, "senti", f"/scratch/fmeng/ActAdd/results/{dir}/")
+
+    parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_llama_fl_hpt/")
+    parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_opt_fl_hpt/")
 
 
 if __name__ == "__main__":

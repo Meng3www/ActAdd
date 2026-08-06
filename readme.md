@@ -872,6 +872,27 @@ with temperature=0, the generated texts are very repetitive, most of them have l
 while the base generated texts for temperature=1 are mostly still "fluent", but with higher conditional perplexities ranging (8.5, 43.4).                 
 conditional perplexity measures how surprised a model is seeing the tokens. repetition seems to have reduced the surprisal. however, it does not mean the texts read fluently                 
 for this reason I add aditional column for each generation, asking `Qwen2.5-7B-Instruct` to provide fluency in addition to sentiment/bridge               
+originally i want to have one prompt that does multiple evaluation, but it seems that the model is confused
+- if the formatting requirement is not placed in the end, the model will output random tokens other than the one specified, and test evaluation instead of they xml format explicitly required in the prompt
+- even in the prompt `2 = talks about the Golden Gate Bridge, 0 = severe looping or degeneration` the model generates
+```
+ `<b>2</b><f>1</f><r>0</r>`
+     The text mentions no bridge, it is understandable but awkward
+-----------------------------------
+  `<b>2</b><f>1</f><r>1</r>`
+     Explanation: The text mentions the Golden Gate Bridge twice,
+-----------------------------------
+  `<b>2</b><f>1</f><r>0</r>`
+     The text is repetitive but does not mention any bridge.
+-----------------------------------
+```               
+in several places, so it might be better if in each prompt the model does one single evaluation only.                   
+but even with model predicting one value only, it makes mistake (`1 = totally ungrammatical, unreadable gibberish that can't even be English`)
+```
+1</gibberish> The sentence fragment provided is still mostly coherent and understandable, despite being incomplete. It makes sense within the context of discussing a degree program and the goals of such a program. Therefore, it cannot be rated as totally ungrammatical or unreadable gibberish. </gibber
+```
+
+for this reason, the additional result is for reference only
 
 ## TODOs
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
