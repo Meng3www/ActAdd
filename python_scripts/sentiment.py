@@ -2,7 +2,7 @@ from config import *
 from torch.utils.data import DataLoader
 from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
 # from transformer_lens.model_bridge import TransformerBridge
-from utils_aa import ModelDataset, pipeline_base_batch, save2file, reset_seed, load_data
+from utils_aa import ModelDataset, pipeline_base_batch, save2file, reset_seed, load_data, get_outfile_name
 import pandas as pd
 import json, os, re, time
 import torch
@@ -74,6 +74,107 @@ def sentiment(model, tokeniser, text):
         print(f"{rating_str} is not an int, return none")
         return None
     return rating
+
+def sentiment_plus(model, tokeniser, text):
+    """
+    sentiment with additional task on fluency
+    """
+    # gemini+chatGPT
+    prompt = f"""You are an objective, precise evaluation judge. 
+    Your task is to evaluate the text enclosed in <text> tags. 
+    Evaluate three properties independently. 
+    # sentiment 
+    -1 = Negative sentiment (distress, failure, anger, critique) 
+    1 = Positive sentiment (optimism, success, joy, praise) 
+    0 = neither positive nor negative 
+
+    # fluency 
+    0 = gibberish 
+    1 = understandable but awkward 
+    2 = completely fluent and natural 
+
+    # repetition 
+    0 = severe looping or degeneration 
+    1 = moderate repetition 
+    2 = no noticeable repetition 
+
+    Please only give the judgement in the following XML format, 
+    each tag should contain only one number, no explanation is needed:
+    `<s>-1|0|1</s><f>0|1|2</f><r>0|1|2</r>`
+
+    text: <text>{text}</text>"""
+    input_tokens = tokeniser(prompt, return_tensors="pt").to(device)
+    reset_seed(seed)
+    outputs = model.generate(**input_tokens, max_new_tokens=16, temperature=0.01)
+    judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
+    len_prompt = len(prompt)
+    rating_raw = judgement[len_prompt:]
+    print(rating_raw)  # "fluency_qualit"
+    # rating_str = re.findall(r"[-01]+", rating_raw)
+    # if rating_str:
+    #     rating_str = rating_str[0]
+    # else:
+    #     print(text)
+    #     reset_seed(seed)
+    #     outputs = model.generate(**input_tokens, max_new_tokens=27, temperature=0.01)
+    #     judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
+    #     print(judgement[len_prompt:])
+    # try:
+    #     rating = int(rating_str)
+    # except:
+    #     print(f"{rating_str} is not an int, return none")
+    #     return None
+    # return rating
+
+def bridge_plus(model, tokeniser, text):
+    """
+    bridge detection with additional task on fluency
+    """
+    prompt = f"""You are an objective, precise evaluation judge. 
+    Your task is to evaluate the text enclosed in <text> tags. 
+    Evaluate three properties independently. 
+    # bridge 
+    0 = no mention of any bridge 
+    1 = mentions some bridge, but not the Golden Gate Bridge 
+    2 = talks about the Golden Gate Bridge 
+
+    # fluency 
+    0 = gibberish 
+    1 = understandable but awkward 
+    2 = completely fluent and natural 
+
+    # repetition 
+    0 = severe looping or degeneration 
+    1 = moderate repetition 
+    2 = no noticeable repetition 
+
+    Please only give the judgement in the following XML format, 
+    each tag should contain only one number, no explanation is needed:
+    `<b>-1|0|1</b><f>0|1|2</f><r>0|1|2</r>`
+
+    text: <text>{text}</text>"""
+    input_tokens = tokeniser(prompt, return_tensors="pt").to(device)
+    reset_seed(seed)
+    outputs = model.generate(**input_tokens, max_new_tokens=16, temperature=0.01)
+    judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
+    len_prompt = len(prompt)
+    rating_raw = judgement[len_prompt:]
+    print(rating_raw)
+    # rating_str = re.findall(r"[-01]+", rating_raw)
+    # if rating_str:
+    #     rating_str = rating_str[0]
+    # else:
+    #     print(text)
+    #     reset_seed(seed)
+    #     outputs = model.generate(**input_tokens, max_new_tokens=27, temperature=0.01)
+    #     judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
+    #     print(judgement[len_prompt:])
+    # try:
+    #     rating = int(rating_str)
+    # except:
+    #     print(f"{rating_str} is not an int, return none")
+    #     return None
+    # return rating
 
 def sentiment_eval_folder(model, tokeniser, folder_path):
     """
@@ -152,6 +253,51 @@ def add_sentiment():
     sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_sent_2pos_opt_hpt/")
     sentiment_eval_folder(model, tokeniser, "/scratch/fmeng/ActAdd/results/gemini_sent_2neg_opt_hpt/")
 
+def parse_path(model, tokeniser, func, path):
+    """
+    func: sentiment_plus or bridge_plus
+    path to a directory or to a json file
+    """
+    start = time.time()
+    if path.endswith("/"):  # a dir
+        print("parsing directory", path)
+        for file_name in os.listdir(path):
+            with open(f"{path}{file_name}", "r") as f:
+                r_dict = json.load(f) 
+            for coeff in r_dict:
+                list_dict = r_dict[coeff]
+                for dict_item in list_dict:
+                    text2eval = dict_item["generated_text"]
+                    func(model, tokeniser, text2eval)
+            if "sentiment" in func.__name__:
+                outfile_name = get_outfile_name(file_name, "senti+")
+            else:
+                outfile_name = get_outfile_name(file_name, "brid+")        
+            print("outfile_name: ", outfile_name)
+    elif path.endswith(".json"):
+        print("parsing file", path)
+        with open(path, "r") as f:
+            r_list = json.load(f)
+        for dict_item in r_list:
+            text2eval = dict_item["generated_text"]
+            func(model, tokeniser, text2eval)
+        if "sentiment" in func.__name__:
+            outfile_name = get_outfile_name(file_name, "senti+")
+        else:
+            outfile_name = get_outfile_name(file_name, "brid+")        
+        print("outfile_name: ", outfile_name)
+    else:
+        print("cannot parse the path", path)
+    print(f"total time: {round((time.time() - start)/60, 2)} mins")
+
+def test_plus():
+    tokeniser = AutoTokenizer.from_pretrained(path_qwen_sentiment, device_map="auto")
+    model = AutoModelForCausalLM.from_pretrained(path_qwen_sentiment, device_map="auto")
+    print("model loaded to ", device)
+    parse_path(model, tokeniser, sentiment_plus, "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_llama_fl_temp_0.json")
+    parse_path(model, tokeniser, bridge_plus, "/scratch/fmeng/ActAdd/results/gemini_bridge_llama_fl_hpt/gemini_bridge_llama_fl_23.json")
+
+
 if __name__ == "__main__":
     # prompt_add, prompt_sub = " love", " hate"
     # model_steer = TransformerBridge.boot_transformers(path_Llama3, device=device)
@@ -164,4 +310,5 @@ if __name__ == "__main__":
     # baseline(model_steer, model_sentiment, model_relevance, input_file_name, out_file_name)  
     # input_file_name, out_file_name = "imdb_pos_opt.json", "base_pos_opt_sent_simi"
     # baseline(model_steer, model_sentiment, model_relevance, input_file_name, out_file_name)  
-    add_sentiment()
+    # add_sentiment()
+    test_plus()

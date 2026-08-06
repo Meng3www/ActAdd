@@ -867,6 +867,12 @@ Statistics of /content/base_pos_opt_sent_simi_fl.json
     Average relevance of continuations: 0.38409541165197225
 ```
 
+## conditional perplexity as fluency
+with temperature=0, the generated texts are very repetitive, most of them have low conditional perplexity, for example the base generation for llama has a (1.8-3.4) range.                     
+while the base generated texts for temperature=1 are mostly still "fluent", but with higher conditional perplexities ranging (8.5, 43.4).                 
+conditional perplexity measures how surprised a model is seeing the tokens. repetition seems to have reduced the surprisal. however, it does not mean the texts read fluently                 
+for this reason I add aditional column for each generation, asking `Qwen2.5-7B-Instruct` to provide fluency in addition to sentiment/bridge               
+
 ## TODOs
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
 - &cross; check if different lengths in the prompts destroys the batch pipeline
