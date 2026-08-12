@@ -377,7 +377,6 @@ def parse_path_template(model, tokeniser, template_group, path):
                 outfile_name = get_outfile_name(file_name, "senti+")
             else:
                 outfile_name = get_outfile_name(file_name, "bridge+")        
-            print("outfile_name: ", outfile_name)
             save2file(r_dict, outfile_name)
     elif path.endswith(".json"):
         print("parsing file", path)
@@ -389,7 +388,6 @@ def parse_path_template(model, tokeniser, template_group, path):
             outfile_name = get_outfile_name(path, "senti+")
         else:
             outfile_name = get_outfile_name(path, "bridge+")        
-        print("outfile_name: ", outfile_name)
         save2file(r_list, outfile_name)
     else:
         print("cannot parse the path", path)

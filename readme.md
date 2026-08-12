@@ -806,7 +806,7 @@ This set will be used to do hyperparameter tuning for steering into both directi
 The sentiment model will be replaced by `Qwen2.5-7B`            
 - sentiment, cosine similarity and logprobs will be done after all generation is finished. 
 
-generate
+generate with temperature 1
 |        |model| b/s  |steer (min)|n_pos|n_neut|n_neg|layer,coeff|senti (min)|
 | ------ | --- | ---- | --------- | --- | ---- | --- | --------- | --------- |
 |baseline|llama| batch| NA        |12/11| 7/8  | 1/1 | na        | na        |
@@ -822,8 +822,11 @@ generate
 
 due to the sentence to be sentiment evaluated being leaked, all sentiments are re-run with the system prompt to Qwen sentiment evaluator slightly modified (to make 0 the bin for else: neither positive nor negative, and to wrap the continuation is a pair of tags). however the steering effect is deemed as being weaker with this system prompt. 
 
-the sentences do not seem to be steered (with `" love", " hate"`) basing on the sentiment results. also tried 
-`"I have very positive opinions about this topic.", "I have very negative opinions about this topic."`
+the sentences do not seem to be steered (with `" love", " hate"`) basing on the sentiment results. also tried sentence pair: 
+```
+    "I have very positive opinions about this topic.", 
+    "I have very negative opinions about this topic."
+```
 but with very minor improvement. the successful areas of the two steering pairs differ. Which means for each pair, a set of hyper-parameter tuning is required
 
 #### qualitative for the sent (to generate steering vector) version
@@ -840,7 +843,7 @@ but with very minor improvement. the successful areas of the two steering pairs 
   - layer22, coeff12
 
 ### evaluation/result analysis
-#### baseline statistics
+#### baseline statistics for imdb with temperature 1
 ```
 Statistics of /content/base_neg_llama_sent_simi_fl.json
     Sample size: 25000
@@ -866,6 +869,82 @@ Statistics of /content/base_pos_opt_sent_simi_fl.json
     Average perplexity of continuations: 41.31799394594642
     Average relevance of continuations: 0.38409541165197225
 ```
+#### gemini validation set, temperature 0 and temperature 1
+|         | model |temperature|n_pos|n_neut|n_neg|repetitive|fluency|
+| ------- | ----- | --------- | --- | ---- | --- | -------- | ----- | 
+| basline | llama | 0         | 5   | 13   | 2   | 5        |2.5579 | 
+| basline | opt   | 0         | 7   | 9    | 4   | 12       |3.2632 | 
+
+|      |temperature|model| layer, coeff |max_n|repeting|fluency|steering vec|metrics|comment|
+| ---- | --------- | --- | ------------ | --- | ------ | ----- | ---------- | ----- | ----- |
+| 2pos | 0         |llama| (17,17+)     | 19  | "love" | 2.09  |"Love""Hate"| count ||
+| 2pos | 0         |llama| (17,15)      | 15  | -      | 2.32  |"Love""Hate"|compare||
+| 2pos | 0         | opt |(2,3),(17,4),**(24,1)**|9|prompt,sentence,more readable than llama| 2.09  |"Love""Hate"| count |huge areas of 0s, ginormous ppl|
+| 2pos | 0         | opt | (1,15)       | 9   | -      | 8.72  |"Love""Hate"|compare||
+| 2pos | 0         |llama| (3,4)        | 12  |sentence| 38.02 | sentences  | count |first half of layers more successes|
+| 2pos | 0         |llama|(6,16),(14,19)| 10  | -      | <3    | sentences  |compare||
+| 2pos | 0         | opt | (18,10)      | 12  |sentence| 4.87  | sentences  | count |a huge area of 0s, ginormous ppl|
+| 2pos | 0         | opt |(13,9),(17,14/17),(18,11)|9|-| <6    | sentences  |compare||
+| 2neg | 0         |llama| (13,17)      | 8   |sentence| 3.57  |"Hate""Love"| count ||
+| 2neg | 0         |llama|(3,15/18),(17,8)| 9 | -      | <4    |"Hate""Love"|compare||
+| 2neg | 0         | opt |(21,**12**/13/20)|11|sent,"love"| <5 |"Hate""Love"| count |a huge area of 0s, ginormous ppl|
+| 2neg | 0         | opt | (21,12/20)   | 11  | -      | <5    |"Hate""Love"|compare||
+| 2neg | 0         |llama| (7,**15**/19)| 7   |gibberish| 14+- | sentences  | count ||
+| 2neg | 0         |llama| (7,19)       | 11  | -      | 14.21 | sentences  |compare||
+| 2neg | 0         | opt | (1,7)        | 7   |sentence| 3.27 | sentences  | count |a huge area of 0s, ginormous ppl|
+| 2neg | 0         | opt |(0,3),(1,4),(17,18),(21,9),(22,14)|9|-|<7|sentences|compare||
+
+<details>
+
+<summary>examples</summary>
+
+```
+gemini_2pos_llama_senti+_fl_temp_0_no_space_17.json (17,17): {
+      "prompt": "The widespread usage of social media platforms has drastically altered how younger generations communicate with their peers, share personal milestones, and consume their daily news",
+      "generated_text": ". Love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love love",
+      "fluency": 1.5769882202148438,
+      "continuation_label": 1,
+      "gibberish": 1,
+      "repetition": 1
+    }, 
+gemini_2pos_opt_senti+_fl_temp_0_no_space_2.json (2,3): {
+      "prompt": "Many modern universities are shifting toward hybrid learning models, combining traditional in-person classroom lectures with digital assignments, recorded videos, and online",
+      "generated_text": " learning.\n\nThe University of California, Berkeley is one of the most prestigious universities in the world.\n\nThe University of California, Berkeley is a public university is a public research university in the United States.\n\nThe University of California, Berkeley is a public research university in the United States.\n\nThe",
+      "fluency": 3.73187255859375,
+      "continuation_label": 1,
+      "gibberish": 1,
+      "repetition": 1
+    },
+gemini_2neg_llama_senti+_fl_temp_0_no_space_13.json (13,17): {
+      "prompt": "Many modern universities are shifting toward hybrid learning models, combining traditional in-person classroom lectures with digital assignments, recorded videos, and online",
+      "generated_text": " discussions. This hybrid learning model is often used to accommodate students who are unable to attend in-person classes due to work or family obligations. Hate to say it, but it\u2019s not the best way to learn. Hate to say it, but hate is a strong word. Hate is a strong word. Hate is a strong",
+      "fluency": 5.1630859375,
+      "continuation_label": -1,
+      "gibberish": 1,
+      "repetition": 1
+    },
+gemini_2neg_opt_senti+_fl_temp_0_no_space_21.json (21,12): {  # there are a lot of love in this layer
+      "prompt": "Modern documentary filmmakers frequently choose to explore complex environmental issues, historical political events, or unusual subcultures that are rarely covered by mainstream television",
+      "generated_text": ".\n\nHate\n\nHate\n\nHate\n\nHate\n\nHate\n\nHate\n\nHate\n\nHate\n\nHate\n\nHate\n\nHate\n\nHate\n\nHate\n\nHate\n\nHate\n\nH",
+      "fluency": 2.167526960372925,
+      "continuation_label": 1,
+      "gibberish": 1,
+      "repetition": 1
+    },
+gemini_sent_2neg_llama_senti+_fl_temp_0_7.json (7,15): {  # descending into chaos
+      "prompt": "Many modern universities are shifting toward hybrid learning models, combining traditional in-person classroom lectures with digital assignments, recorded videos, and online",
+      "generated_text": " discussions. This is a major change from the past, when students were assigned to a \u201clow\u201d and \u201clow being the computer, \u201clow\u201d being being \u201cN\u201d\u201d\u201d of the \u201c\u201d \u201c B \u201c \u201c B \u201c \u201c B \u201c \u201c B \u201c \u201c B \u201c \u201c B \u201c \u201c \u201c \u201cizz \u201c",
+      "fluency": 23.87982940673828,
+      "continuation_label": -1,
+      "gibberish": 1,
+      "repetition": 1
+    },
+```
+
+- huge area of 0s: some are repeated words (low ppl), or mostly white spaces/dots (high ppl)
+- repeating sentences is better than repeating words
+- model would generate empty string after being steered
+</details>
 
 ## conditional perplexity as fluency
 with temperature=0, the generated texts are very repetitive, most of them have low conditional perplexity, for example the base generation for llama has a (1.8-3.4) range.                     
@@ -894,25 +973,15 @@ but even with model predicting one value only, it makes mistake (`1 = totally un
 
 for this reason, the additional result is for reference only
 
-## TODOs
-Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
-- &cross; check if different lengths in the prompts destroys the batch pipeline
-    - it does not. but in case the padding causes any disturbance, a different set of prompts with OPT tokeniser should be prepared
-- &cross; baseline with the 10 prompts
-- &cross; heatmap
-- &cross; check qualitively to be listed
-    - positive example
-    - negative example
-- &cross; validation set::prompts such as "the capital of germany is ...", 20 neutral prompts for hyperparameter tuning
-- &cross; steering prompts with sentences, not words
-- &cross; sentiment with Qwen2.5-7B
-- &cross; leave out the imdb steering
-- linear map the steering vector to see what token(s) it maps to
-- ppl for heatmap on layer/coeff
-- qualitative examples on the report
-- adding toxicity (validate the result on the good negative steering capability) to different languages
-- qwen3guard-8b for toxicity
-- instead of simply recording the number of possitive and negative, it's more meaningful to record the number of cases where the base is one sentiment, and the steered result is another
+### LLM as judge
+`Qwen2.5-7B-Instruct` is used as the LLM judge in sentiment analysis, as well as grading the gibberishness and the repetition of the generated text.
+- for sentiment there is no big issue found
+- for gibberishness the model does not understand what total gibberish is, even if I add the description "unreadable gibberish that can't even be English", the model judge would still classify understandable partial sentences as gibberish
+- for repetition it's difficult to tell
+  - the model fails to produce results that conform to the formatting rules: 
+    - additional layer of tags
+    - wrapping tags inside backticks (`) with `xml`
+  - also due to the fact that the sentence to be evaluated is placed at the end of the prompt for `repetition` and `bridge`, and the model very likely gives more attention to the end of the prompt, many of the judgement are continuation to the sentence to be evaluated even if the sentence itself is wrapped inside a pair of `<text>` tags. In contrast for `gibberish` the instruction is placed at the end, and this issue is less seen. but for `sentiment`, the text is also at the end, however, this is less seen. 
 
 # reducing toxicity (4.3)
 - Fluency, Relevance, Toxicity
@@ -926,24 +995,47 @@ prompt_add, prompt_sub = "Love", "Hate"
 sampling_kwargs = dict(temperature=1.0, top_p=0.3, freq_penalty=1.0)
 act_name, coeff = 17, 2  # l, c
 ```
-# TODO
-- try the best parameters from the hyper-parameter tuning to see if performance differ
-- overleaf::4-5 pages framework for the reports
-- presentation: first week of september
-- redo with temperature=0
-- replace opt with a newer llama
 
 # reducing perplexity on a target topic (4.1.1)
 skip
 # the impact on token probabilities (4.1.2)
 skip
 # steering the model to discuss a target topic (4.1.3, 4.2)
-TODO
-bridge, with the same 20 sents same grid search, 
-senti-> judge returns binary for whether it's talking about the bridge
+all results are steered with sentence pair:
+```
+    prompt_add = "I talk about the Golden Gate Bridge"
+    prompt_sub = "I never talk about the Golden Gate Bridge" 
+```
+- temperature: 0 
+- gemini validation set
+- coeff in range [1, 20]
+- `Meta-Llama-3-8B` and `opt-6.7b`
 
+the baseline generation has 0 sentence that mentions the bridge
+ 
+## result
+- LLM as judge: `Qwen2.5-7B-Instruct`
+
+|model|max_n|layer,coeff|fluency|repeat|comment|
+| --- | --- | --------- | ----- | ---- | ----- |
+|llama| 20  |(2,20),(7,18/19),(14,13-18),(15,9+),(16,8/10-12),(17,10/16-19),(18,18/19)||||
+| opt | 20  |(17,5/7/8/11/13/14/17+)|<8, except coeff=20|||
 # preserving general knowledge (4.5)
 Fluency, Relevance, prompt eng, random activation, partial 
+
+# extended experiments
+steering text in `de` and `zh` with steering vector from `en`                         
+current steering models: 
+- [facebook/opt-6.7b](https://arxiv.org/pdf/2205.01068.pdf): All corpora were previously collected or filtered to contain predominantly English text, but a small amount of non-English data is still present within the corpus via CommonCrawl.
+- meta-llama/Meta-Llama-3-8B seems to be en only according to the hf model card
+- Qwen/Qwen2.5-7B and Qwen/Qwen2.5-7B-Instruct have Multilingual support for `Chinese, English, ..., German`
+- most of the google models are english only
+
+possible alternative: 
+- Llama-3.1-8B: available on the cluster, supporting English and German
+- according to gemini
+  - [Tower-Babel/Babel-9B](https://huggingface.co/Tower-Babel/Babel-9B)
+  - [LLaMAX/LLaMAX3-8B](https://huggingface.co/LLaMAX/LLaMAX3-8B)
 
 # issues
 ## batch processing
@@ -993,7 +1085,9 @@ it's just their reproducibility is not guaranteed with different order/batch siz
 - with `dict(temperature=0, top_p=1.0, freq_penalty=0.0)` the results of the batch steer and single steer are the same. but the generated sentence repeats itself quite a lot 
 - with `freq_penalty=1.0` there is no change. the same results as when it is 0
 
-baseline generate the 20 gemini prompts, temperature 0 generates longer sentences (word count 1576 vs 2146)
+baseline generate the 20 gemini prompts, temperature 0 generates longer sentences (word count 1576 vs 2146)             
+- the sentences yield lower conditional perplexity but with many repetitions
+
 
 ### batch logprobs: 
 as the tokeniser is different, there is no guarantee that the prompts let alone the generated test would be the same length after tokenisation. With padded tokens, the probability weight will change and therefore for the logprobs there should be no batch processing. 
@@ -1044,9 +1138,30 @@ it turns out that the loss of reproducibility comes from a bug that multiply mul
 - step of 10 from 10-50, then around the step (step+5, step-5)
 
 # TODOs
-- heatmap on hype/senti/toxi
-- plot for main findings
-- move on from sentiment
-- golden gate bridge
+- try the best parameters from the hyper-parameter tuning to see if performance differ
+- overleaf::4-5 pages framework for the reports
+- presentation: first week of september
+- &cross; redo with temperature=0
+Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
+- &cross; check if different lengths in the prompts destroys the batch pipeline
+    - it does not. but in case the padding causes any disturbance, a different set of prompts with OPT tokeniser should be prepared
+- &cross; baseline with the 10 prompts
+- &cross; heatmap
+- &cross; check qualitively to be listed
+    - positive example
+    - negative example
+- &cross; validation set::prompts such as "the capital of germany is ...", 20 neutral prompts for hyperparameter tuning
+- &cross; steering prompts with sentences, not words
+- &cross; sentiment with Qwen2.5-7B
+- &cross; leave out the imdb steering
+- linear map the steering vector to see what token(s) it maps to
+- &cross; ppl for heatmap on layer/coeff
+- qualitative examples on the report
+- adding toxicity (validate the result on the good negative steering capability) to different languages
+- qwen3guard-8b for toxicity
+- &cross; instead of simply recording the number of possitive and negative, it's more meaningful to record the number of cases where the base is one sentiment, and the steered result is another
+- plot for main findings 
+- &cross; golden gate bridge, with the same 20 sents same grid search, 
+- &cross; senti-> judge returns binary for whether it's talking about the bridge
 - german and chinese
 - [NNsight](https://nnsight.net/)
