@@ -1032,10 +1032,18 @@ current steering models:
 - most of the google models are english only
 
 possible alternative: 
-- Llama-3.1-8B: available on the cluster, supporting English and German
 - according to gemini
   - [Tower-Babel/Babel-9B](https://huggingface.co/Tower-Babel/Babel-9B)
   - [LLaMAX/LLaMAX3-8B](https://huggingface.co/LLaMAX/LLaMAX3-8B)
+    - created a 16bit copy, but generates text in low quality (high repetition or drift in different language)
+    - tried different parameters, but the problem did not levitate
+    - same thing happened with the 32bit original model, so not the issue with the 16bit
+    - serious issue with Language Drift when prompt in english, let alone other languages
+  - [google/gemma-2-9b](https://huggingface.co/google/gemma-2-9b) recommended by gemini
+  - Gemma 3 12B PT but multimodal, recommended and pointed out by chatgpt
+    - both gemma models, not enough evidence for sufficient level of chinese fluency
+- Llama-3.1-8B: available on the cluster, supporting English and German
+- Qwen2.5-7B for steering en-zh, Qwen2.5-7B-Instruct for sentiment/bridge dectection, no logprobs for impartiality
 
 # issues
 ## batch processing
