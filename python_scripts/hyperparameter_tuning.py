@@ -116,19 +116,19 @@ if __name__ == "__main__":
     # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
     # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg_10")
     # baseline_senti(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
-    base_generate(model, prompts, sampling_kwargs, "gemini_base_de_temp_0")
+    # base_generate(model, prompts, sampling_kwargs, "gemini_base_de_temp_0")
     
-    prompt_add, prompt_sub = "Love", "Hate"
-    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_de_temp_0_no_space")
-    prompt_add, prompt_sub = "Hate", "Love"
-    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_2neg_de_temp_0_no_space")
+    # prompt_add, prompt_sub = "Love", "Hate"
+    # ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_de_temp_0_no_space")
+    # prompt_add, prompt_sub = "Hate", "Love"
+    # ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_2neg_de_temp_0_no_space")
 
-    prompt_add, prompt_sub = "I have very positive opinions about this topic.", "I have very negative opinions about this topic."
-    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2pos_de_temp_0")
-    prompt_add, prompt_sub = "I have very negative opinions about this topic.", "I have very positive opinions about this topic."
-    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2neg_de_temp_0")
+    # prompt_add, prompt_sub = "I have very positive opinions about this topic.", "I have very negative opinions about this topic."
+    # ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2pos_de_temp_0")
+    # prompt_add, prompt_sub = "I have very negative opinions about this topic.", "I have very positive opinions about this topic."
+    # ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2neg_de_temp_0")
     # talking about bridge
-    prompt_add, prompt_sub = "I talk about Tower Bridge", "I never talk about Tower Bridge" 
+    prompt_add, prompt_sub = "I talk about the Golden Gate Bridge", "I never talk about the Golden Gate Bridge"  
     ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_bridge_de")
     print("all tasks finished")
     

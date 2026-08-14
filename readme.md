@@ -869,7 +869,38 @@ Statistics of /content/base_pos_opt_sent_simi_fl.json
     Average perplexity of continuations: 41.31799394594642
     Average relevance of continuations: 0.38409541165197225
 ```
-#### gemini validation set, temperature 0 and temperature 1
+
+#### gemini validation set, temperature 1
+- `temperature=1.0, top_p=1.0, freq_penalty=0.0`
+- sentiment only
+
+|         | model |temperature|n_pos|n_neut|n_neg|fluency|
+| ------- | ----- | --------- | --- | ---- | --- | ----- | 
+| basline | llama | 1         | 11  | 8    | 1   |22.038 | 
+| basline | opt   | 1         | 12  | 6    | 2   |27.720 | 
+
+|      |temperature|model| layer, coeff |max_n| steering vec |metrics|comment|
+| ---- | --------- | --- | ------------ | --- | ------------ | ----- | ----- |
+| 2pos | 1         |llama| (22,13/16)   | 12  |" love"" hate"| count | ----- |
+| 2pos | 1         |llama| (12,9)(22,13)| 5   |" love"" hate"|compare| ----- |
+| 2pos | 1         | opt | (2,3)        | 10  |" love"" hate"| count |a huge area of 0s|
+| 2pos | 1         | opt | (2,3)        | 10  |" love"" hate"|compare||
+| 2pos | 1         |llama| (6,13/14/**17**) | 13  | sentences    | count | ----- |
+| 2pos | 1         |llama| (7,16)       | 8   | sentences    |compare| ----- |
+| 2pos | 1         |opt|(**1,4**)(18,3)(29,15)|10 | sentences    | count |a huge area of 0s|
+| 2pos | 1         | opt | (1,9)        | 10  | sentences    |compare||
+| 2neg | 1         |llama|(1,12)(2,3)(3,16/20)(11,10)(27,10/18)|6|" hate"" love"|count| ----- |
+| 2neg | 1         |llama|(2,10/18/20)(4,12)|12|" hate"" love"|compare| |
+| 2neg | 1         | opt | (19,20)      | 8   |" hate"" love"| count |area of 0s reduces|
+| 2neg | 1         | opt | (3,9)        | 11  |" hate"" love"|compare||
+| 2neg | 1         |llama| (12,17)      | 15  | sentences    | count |a cluster of negativity, some negative, some gibberish|
+| 2neg | 1         |llama| (13,19/20)   | 17  | sentences    |compare|a cluster of negativity|
+| 2neg | 1         | opt | (22,12)      | 8   | sentences    | count ||
+| 2neg | 1         | opt | (16,9)       | 11  | sentences    |compare||
+
+#### gemini validation set, temperature 0
+- `temperature=0, top_p=1.0, freq_penalty=0.0`
+
 |         | model |temperature|n_pos|n_neut|n_neg|repetitive|fluency|
 | ------- | ----- | --------- | --- | ---- | --- | -------- | ----- | 
 | basline | llama | 0         | 5   | 13   | 2   | 5        |2.5579 | 
@@ -941,10 +972,12 @@ gemini_sent_2neg_llama_senti+_fl_temp_0_7.json (7,15): {  # descending into chao
     },
 ```
 
+</details>
+
 - huge area of 0s: some are repeated words (low ppl), or mostly white spaces/dots (high ppl)
 - repeating sentences is better than repeating words
 - model would generate empty string after being steered
-</details>
+- with the amount of repetitions, the following experiment cross languages could increase the `freq_penalty` to 1
 
 ## conditional perplexity as fluency
 with temperature=0, the generated texts are very repetitive, most of them have low conditional perplexity, for example the base generation for llama has a (1.8-3.4) range.                     
@@ -1018,8 +1051,8 @@ the baseline generation has 0 sentence that mentions the bridge
 
 |model|max_n|layer,coeff|fluency|repeat|comment|
 | --- | --- | --------- | ----- | ---- | ----- |
-|llama| 20  |(2,20),(7,18/19),(14,13-18),(15,9+),(16,8/10-12),(17,10/16-19),(18,18/19)||||
-| opt | 20  |(17,5/7/8/11/13/14/17+)|<8, except coeff=20|||
+|llama| 20  |(2,20),(7,18/19),(14,13-18),(15,9+),(16,8/10-12),(17,10/16-19),(18,18/19)|2-4|"Golden","Gate"|at (15,15), not readable|
+| opt | 20  |(17,5/7/8/11/13/14/17+)|<8, except coeff=20|"Golden","Gate"|at (17, 13), not readable|
 # preserving general knowledge (4.5)
 Fluency, Relevance, prompt eng, random activation, partial 
 
