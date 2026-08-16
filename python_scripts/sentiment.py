@@ -444,4 +444,4 @@ if __name__ == "__main__":
     # input_file_name, out_file_name = "imdb_pos_opt.json", "base_pos_opt_sent_simi"
     # baseline(model_steer, model_sentiment, model_relevance, input_file_name, out_file_name)  
     # add_sentiment()
-    test_plus()
+    senti_de()
