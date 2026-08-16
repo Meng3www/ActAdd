@@ -178,10 +178,12 @@ def prompt_repetition(text):
         Rate it as 0 or 1 where: 
         0 = no noticeable repetition of any clause, or multiple repetition of a word in a row
         1 = with repeated clauses, or unusual repetition of words or phrases
+
+        text: <text>{text}</text>
         Respond with EXACTLY one of the single numbers above after `<repetition>`. 
         Please do not provide any number other than 0, 1, as the rating.  
-        Close the tag with a `</repetition>` after the rating immediately without white space
-        text: <text>{text}</text>, <repetition>"""
+        Close the tag with a `</repetition>` after the rating immediately without white space:
+        <repetition>"""
     return prompt
 
 def prompt_bridge(text):
@@ -193,10 +195,12 @@ def prompt_bridge(text):
         Rate it as 0 or 1 where: 
         0 = no mention of any bridge 
         1 = talks about the Golden Gate Bridge or other bridges
+        
+        text: <text>{text}</text>
         Respond with EXACTLY one of the single numbers above after `<bridge>`. 
         Please do not provide any number other than 0, 1, as the rating.  
-        Close the tag with a `</bridge>` after the rating immediately without white space
-        text: <text>{text}</text>, <bridge>"""
+        Close the tag with a `</bridge>` after the rating immediately without white space:
+        <bridge>"""
     return prompt
 
 def judge(model, tokeniser, prompt_template, text):
@@ -355,7 +359,7 @@ def add_eval(model, tokeniser, template_group, dict):
         dict["continuation_label"] = sentiment(model, tokeniser, text2eval)
     else: 
         dict["bridge"] = judge(model, tokeniser, prompt_bridge, text2eval)
-    dict["gibberish"] = judge(model, tokeniser, prompt_gibberish, text2eval)
+    # dict["gibberish"] = judge(model, tokeniser, prompt_gibberish, text2eval)
     dict["repetition"] = judge(model, tokeniser, prompt_repetition, text2eval)
 
 def parse_path_template(model, tokeniser, template_group, path):
@@ -412,6 +416,19 @@ def test_plus():
 
     parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_llama_fl_hpt/")
     parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_opt_fl_hpt/")
+
+def senti_de():
+    tokeniser = AutoTokenizer.from_pretrained(path_qwen_sentiment, device_map="auto")
+    model = AutoModelForCausalLM.from_pretrained(path_qwen_sentiment, device_map="auto")
+    print("model loaded to ", device)
+    parse_path_template(model, tokeniser, "senti", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_de_temp_0.json")
+    list_dirs = ["gemini_2pos_de_temp_0_no_space",
+                 "gemini_2neg_de_temp_0_no_space",
+                 "gemini_sent_2pos_de_temp_0",
+                 "gemini_sent_2neg_de_temp_0"]
+    for dir in list_dirs:
+        parse_path_template(model, tokeniser, "senti", f"/scratch/fmeng/ActAdd/results/{dir}/")
+    parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_de/")
 
 
 if __name__ == "__main__":

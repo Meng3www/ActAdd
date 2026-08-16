@@ -131,10 +131,12 @@ def get_outfile_name(infile_name, tag2add):
         idx_begin = infile_name.rfind("/") + 1
         infile_name = infile_name[idx_begin:]
     file_name = infile_name.split(".")[0]
-    if "opt" in file_name:
-        idx_split = file_name.find("opt") + len("opt")
-    if "llama" in file_name:
-        idx_split = file_name.find("llama") + len("llama")
+    if "_opt" in file_name:
+        idx_split = file_name.find("_opt") + len("_opt")
+    elif "_llama" in file_name:
+        idx_split = file_name.find("_llama") + len("_llama")
+    elif "_de" in file_name:
+        idx_split = file_name.find("_de") + len("_de")
     outfile_name = file_name[:idx_split]+ "_" + tag2add + file_name[idx_split:]
     return outfile_name
 
