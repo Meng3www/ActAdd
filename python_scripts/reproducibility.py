@@ -451,11 +451,11 @@ def test_specific(prompt_add, prompt_sub, steer_model, layer, coeff, seed, sampl
     layer, coeff: the specific layer, coeff to be checked
     """
     prompts = load_data(input_file_path, 10)
-    reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, coeff, "coeff_single")
+    reproduce_layer_single(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, coeff, "coeff_single_zh")
     # reproduce_layer_actdiff_single_inner(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, coeff, "coeff_actdiff_single_inner")
     # reproduce_layer_actdiff_single_outer(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, coeff, "coeff_actdiff_single_outer")
     # reproduce_layer_inner_single(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, coeff, "coeff_inner_single")
-    reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, coeff, "coeff_batch")
+    reproduce_layer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, coeff, "coeff_batch_zh")
     # reproduce_layer_single_return(prompt_add, prompt_sub, prompts, steer_model, layer, coeff, seed, sampling_kwargs, coeff, "coeff_single_return")
     # prompts_subset = prompts[3:5] 
     # reproduce_layer_single(prompt_add, prompt_sub, prompts_subset, steer_model, layer, coeff+1, seed, sampling_kwargs, coeff, "subset_single")

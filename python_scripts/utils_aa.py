@@ -113,12 +113,18 @@ def save2file(data2save, file_name, file_type="json"):
     if data2save is a panda dataframe, then `file_type="parquet"`
     """
     if file_type == "json":
-        with open(f"{dir_output}{file_name}.json", "w") as f:
-            json.dump(data2save, f, skipkeys=True, indent=2)
+        if "_zh" in file_name:
+            with open(f"{dir_output}{file_name}.json", "w", encoding="utf-8") as f:
+                json.dump(data2save, f, skipkeys=True, ensure_ascii=False, indent=2)
+        else:
+            with open(f"{dir_output}{file_name}.json", "w") as f:
+                json.dump(data2save, f, skipkeys=True, indent=2)
         print(f"file saved as {dir_output}{file_name}.json")
     elif file_type == "parquet": # not convinient for qualitative tasks
         data2save.to_parquet(f"{dir_output}{file_name}.gzip", compression="gzip")
         print(f"file saved as {dir_output}{file_name}.gzip")
+    
+
 
 def get_outfile_name(infile_name, tag2add):
     """
