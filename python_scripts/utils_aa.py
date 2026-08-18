@@ -288,9 +288,9 @@ def ht_steer(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, see
 def ht_steer_batch(prompt_add, prompt_sub, prompts, steer_model, layer, max_coeff, seed, sampling_kwargs, min_coeff=1, file_name="ht_steer_batch"):
     """
     reproduce_layer_actdiff_batch
-    reproduce the results with a given layer, coeff from 1 (default) to max_coeff, on prompts
+    at a given layer, with coeff from 1 (default) to max_coeff, on prompts
     all prompts are steered in batch, and with fresh editing_hooks
-    the act_diff is re-used throughout
+    the act_diff_base is re-used throughout
     the results are saved in a json file with coeff as the key, [{prompt, gen_text}] as the value
     """
     dict_all = dict()

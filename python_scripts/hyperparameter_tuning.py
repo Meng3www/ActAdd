@@ -86,6 +86,7 @@ def ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed,
     start = time.time()
     for layer in range(n_layers):
         ht_steer(prompt_add, prompt_sub, prompts, model, layer, max_coeff, seed, sampling_kwargs, file_name=output_file_name)
+        break
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")    
 
 def ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, output_file_name):
@@ -96,30 +97,38 @@ def ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff,
     start = time.time()
     for layer in range(n_layers):
         ht_steer_batch(prompt_add, prompt_sub, prompts, model, layer, max_coeff, seed, sampling_kwargs, file_name=output_file_name)
+        break
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins") 
 
-if __name__ == "__main__":
+def steer_de():
     model = TransformerBridge.boot_transformers(path_de, device=device)
-    # model_steer.enable_compatibility_mode() # this line causes oom error
     print(f"generating/steering model loaded to {device}")
-
-    # 08.07 two baselines and quantitative for opt pos2neg
-    # baseline(model_generate, model_sentiment, "imdb_neg_opt.json", "baseline_neg_opt_hpt")
-    # baseline(model_generate, model_sentiment, "imdb_pos_opt.json", "baseline_pos_opt_hpt")    
-    # quantitative(model_generate, model_sentiment, "imdb_pos_opt.json")
-    
     input_file_name = "val_gemini_de.json"
     prompts = load_data(input_file_name, 20)
 
-    # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
-    # prompt_add, prompt_sub, input_file_path, output_file_name = "Hate", "Love", "imdb_pos_opt.json", "pos2neg_opt_hpt"
-    # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
-    # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg_10")
-    # baseline_senti(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
-    # base_generate(model, prompts, sampling_kwargs, "gemini_base_de_temp_0")
-    
-    # prompt_add, prompt_sub = "Love", "Hate"
-    # ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_de_temp_0_no_space")
+    prompt_add, prompt_sub = "Love", "Hate"
+    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_de_temp_0_no_space")
+    prompt_add, prompt_sub = "Hate", "Love"
+    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_2neg_de_temp_0_no_space")
+
+    prompt_add, prompt_sub = "I have very positive opinions about this topic.", "I have very negative opinions about this topic."
+    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2pos_de_temp_0")
+    prompt_add, prompt_sub = "I have very negative opinions about this topic.", "I have very positive opinions about this topic."
+    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2neg_de_temp_0")
+    # talking about bridge
+    prompt_add, prompt_sub = "I talk about the Golden Gate Bridge", "I never talk about the Golden Gate Bridge"  
+    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_bridge_de")
+    print("all tasks finished")
+
+def steer_zh():
+    model = TransformerBridge.boot_transformers(path_zh, device=device)
+    print(f"generating/steering model loaded to {device}")
+    input_file_name = "val_gemini_zh.json"
+    prompts = load_data(input_file_name, 10)
+
+    prompt_add, prompt_sub = "Love", "Hate"
+    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_zh_temp_0_no_space")
+    ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_2pos_zh_temp_0_batch")
     # prompt_add, prompt_sub = "Hate", "Love"
     # ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_2neg_de_temp_0_no_space")
 
@@ -127,8 +136,25 @@ if __name__ == "__main__":
     # ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2pos_de_temp_0")
     # prompt_add, prompt_sub = "I have very negative opinions about this topic.", "I have very positive opinions about this topic."
     # ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_sent_2neg_de_temp_0")
-    # talking about bridge
-    prompt_add, prompt_sub = "I talk about the Golden Gate Bridge", "I never talk about the Golden Gate Bridge"  
-    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_bridge_de")
+    # # talking about bridge
+    # prompt_add, prompt_sub = "I talk about the Golden Gate Bridge", "I never talk about the Golden Gate Bridge"  
+    # ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_bridge_de")
     print("all tasks finished")
+
+if __name__ == "__main__":
+    # model_steer.enable_compatibility_mode() # this line causes oom error
+
+    # 08.07 two baselines and quantitative for opt pos2neg
+    # baseline(model_generate, model_sentiment, "imdb_neg_opt.json", "baseline_neg_opt_hpt")
+    # baseline(model_generate, model_sentiment, "imdb_pos_opt.json", "baseline_pos_opt_hpt")    
+    # quantitative(model_generate, model_sentiment, "imdb_pos_opt.json")
+    
+
+    # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
+    # prompt_add, prompt_sub, input_file_path, output_file_name = "Hate", "Love", "imdb_pos_opt.json", "pos2neg_opt_hpt"
+    # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
+    # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg_10")
+    # baseline_senti(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
+    # base_generate(model, prompts, sampling_kwargs, "gemini_base_de_temp_0")
+    steer_zh()
     
