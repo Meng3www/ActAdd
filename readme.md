@@ -1077,6 +1077,8 @@ possible alternative:
     - both gemma models, not enough evidence for sufficient level of chinese fluency
 - Llama-3.1-8B: available on the cluster, supporting English and German
 - Qwen2.5-7B for steering en-zh, Qwen2.5-7B-Instruct for sentiment/bridge dectection, no logprobs for impartiality
+- [deepseek-ai/deepseek-llm-7b-base](https://huggingface.co/deepseek-ai/deepseek-llm-7b-base)
+  - [licence](https://www.blackduck.com/blog/deepseek-license.html)
 
 # issues
 ## batch processing

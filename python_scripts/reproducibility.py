@@ -482,12 +482,13 @@ def test_batch(prompt_add, prompt_sub, steer_model, layer, coeff, seed, sampling
 
 
 if __name__ == "__main__":
-    model_generate = TransformerBridge.boot_transformers(path_llama, device=device)
+    model_generate = TransformerBridge.boot_transformers(path_cn, device=device)
     print(f"baseline generating model loaded to {device}")
     # # model_sentiment = pipeline("sentiment-analysis", model=path_siebert)
     # # print("sentiment model loaded")
-    prompt_add, prompt_sub, input_file_path, layer = " love", " hate", "imdb_neg_llama.json", 10
+    prompt_add, prompt_sub, input_file_path, layer = "Love", "Hate", "val_gemini_zh.json", 10
     # test_whole_layer(prompt_add, prompt_sub, model_generate, layer, max_coeff, seed, sampling_kwargs, input_file_path)
     test_specific(prompt_add, prompt_sub, model_generate, layer, 10, seed, sampling_kwargs, input_file_path)
     # test_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, layer, max_coeff, seed, sampling_kwargs, input_file_path)
     test_batch(prompt_add, prompt_sub, model_generate, layer, 10, seed, sampling_kwargs, input_file_path)
+
