@@ -124,8 +124,6 @@ def save2file(data2save, file_name, file_type="json"):
         data2save.to_parquet(f"{dir_output}{file_name}.gzip", compression="gzip")
         print(f"file saved as {dir_output}{file_name}.gzip")
     
-
-
 def get_outfile_name(infile_name, tag2add):
     """
     helper function to get the outfile name after adding tag2add
@@ -143,6 +141,8 @@ def get_outfile_name(infile_name, tag2add):
         idx_split = file_name.find("_llama") + len("_llama")
     elif "_de" in file_name:
         idx_split = file_name.find("_de") + len("_de")
+    elif "_zh" in file_name:
+        idx_split = file_name.find("_zh") + len("_zh")
     outfile_name = file_name[:idx_split]+ "_" + tag2add + file_name[idx_split:]
     return outfile_name
 

@@ -86,7 +86,6 @@ def ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed,
     start = time.time()
     for layer in range(n_layers):
         ht_steer(prompt_add, prompt_sub, prompts, model, layer, max_coeff, seed, sampling_kwargs, file_name=output_file_name)
-        break
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins")    
 
 def ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, output_file_name):
@@ -97,7 +96,6 @@ def ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff,
     start = time.time()
     for layer in range(n_layers):
         ht_steer_batch(prompt_add, prompt_sub, prompts, model, layer, max_coeff, seed, sampling_kwargs, file_name=output_file_name)
-        break
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins") 
 
 def steer_de():
@@ -142,7 +140,7 @@ def steer_zh():
     prompt_add, prompt_sub = "I talk about the Golden Gate Bridge", "I never talk about the Golden Gate Bridge"  
     ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini_bridge_batch_zh")
     print("all tasks finished")
-    
+
 
 if __name__ == "__main__":
     # model_steer.enable_compatibility_mode() # this line causes oom error

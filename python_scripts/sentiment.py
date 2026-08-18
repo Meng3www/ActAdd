@@ -430,6 +430,19 @@ def senti_de():
         parse_path_template(model, tokeniser, "senti", f"/scratch/fmeng/ActAdd/results/{dir}/")
     parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_de/")
 
+def senti_zh():
+    tokeniser = AutoTokenizer.from_pretrained(path_qwen_sentiment, device_map="auto")
+    model = AutoModelForCausalLM.from_pretrained(path_qwen_sentiment, device_map="auto")
+    print("model loaded to ", device)
+    parse_path_template(model, tokeniser, "senti", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_zh.json")
+    list_dirs = ["gemini_2pos_batch_zh",
+                 "gemini_2neg_batch_zh",
+                 "gemini_sent_2pos_batch_zh",
+                 "gemini_sent_2neg_batch_zh"]
+    for dir in list_dirs:
+        parse_path_template(model, tokeniser, "senti", f"/scratch/fmeng/ActAdd/results/{dir}/")
+    parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_batch_zh/")
+
 
 if __name__ == "__main__":
     # prompt_add, prompt_sub = " love", " hate"
@@ -444,4 +457,4 @@ if __name__ == "__main__":
     # input_file_name, out_file_name = "imdb_pos_opt.json", "base_pos_opt_sent_simi"
     # baseline(model_steer, model_sentiment, model_relevance, input_file_name, out_file_name)  
     # add_sentiment()
-    senti_de()
+    senti_zh()
