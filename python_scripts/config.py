@@ -11,7 +11,8 @@ path_zh = "/scratch/common_models/deepseek-llm-7b-base/"
 
 seed = 0
 # max_new_tokens = 64
-max_new_tokens = 42  # for zh
+# max_new_tokens = 96  # de prompts truncated to 48 tokens
+# max_new_tokens = 42  # zh prompts truncated to 32 tokens
 max_coeff = 20  # for hyperparameter tuning
 num_samples = 20  # for hyperparameter tuning
 batch_size=25  # batch base generation

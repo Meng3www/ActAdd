@@ -1,18 +1,11 @@
 import json
-import numpy as np
 import pandas as pd
-import random, gc
+import gc
 import torch
 from config import *
 from sklearn.metrics.pairwise import cosine_similarity
 from torch.utils.data import Dataset
 
-
-def reset_seed(seed=seed):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
 
 def cleanup_model(model):
     print("before del", torch.cuda.memory_allocated())
@@ -49,7 +42,7 @@ def hooked_generate(prompts, editing_hooks, model, seed=0, **kwargs):
     """
     model: steering model
     """
-    reset_seed(seed)
+    torch.manual_seed(seed)
     with model.hooks(fwd_hooks=editing_hooks):
         result = model.generate(input=prompts, max_new_tokens=max_new_tokens, do_sample=True, **kwargs)
     return result
@@ -95,10 +88,7 @@ def get_conditional_ppl(model, tokeniser, prompt, continuation):
     return torch.exp(ce).item()
 
 def load_data(file_name, slice=0):
-    """
-    TODO: load data from more file formats than just json
-    """
-    with open(f"{dir_input}{file_name}", "r") as f:
+    with open(f"{dir_input}{file_name}", "r", encoding="utf-8") as f:
         r_data = json.load(f)
     if slice==0 or slice >= len(r_data):
         print(f"all data points loaded from {dir_input}{file_name}")
@@ -113,12 +103,8 @@ def save2file(data2save, file_name, file_type="json"):
     if data2save is a panda dataframe, then `file_type="parquet"`
     """
     if file_type == "json":
-        if "_zh" in file_name:
-            with open(f"{dir_output}{file_name}.json", "w", encoding="utf-8") as f:
-                json.dump(data2save, f, skipkeys=True, ensure_ascii=False, indent=2)
-        else:
-            with open(f"{dir_output}{file_name}.json", "w") as f:
-                json.dump(data2save, f, skipkeys=True, indent=2)
+        with open(f"{dir_output}{file_name}.json", "w", encoding="utf-8") as f:
+            json.dump(data2save, f, skipkeys=True, ensure_ascii=False, indent=2)
         print(f"file saved as {dir_output}{file_name}.json")
     elif file_type == "parquet": # not convinient for qualitative tasks
         data2save.to_parquet(f"{dir_output}{file_name}.gzip", compression="gzip")
@@ -177,7 +163,7 @@ def base_generate(model, prompts, sampling_kwargs, out_file_name):
     gen_all = list()
     for prompt in prompts:
         gen_case = {"prompt": prompt}
-        reset_seed(seed)
+        torch.manual_seed(seed)
         generated_text = model.generate(
                 input=prompt,
                 max_new_tokens=max_new_tokens, 
@@ -385,7 +371,7 @@ def batch_base_generate(prompts, model, seed, kwargs):
     "generated_text": the prompt and the continuing unsteered generated text
     """
     df = pd.DataFrame({"prompt": prompts})
-    reset_seed(seed)
+    torch.manual_seed(seed)
     generated_text = model.generate(
         input=prompts,
         max_new_tokens=max_new_tokens, 
