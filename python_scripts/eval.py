@@ -46,20 +46,24 @@ def add_fluency2dir(model, tokeniser, dir_path):
 def add_fl():
     model = AutoModelForCausalLM.from_pretrained(path_qwen_logprobs, device_map='auto')
     tokeniser = AutoTokenizer.from_pretrained(path_qwen_logprobs, device_map='auto')
-    data_file_list = ["gemini_base_de_senti+_temp_0.json", "gemini_base_zh_senti+.json"]
+    data_file_list = ["gemini_base_de.json", "gemini_base_zh.json"]
     for file in data_file_list:
         add_fluency2file(model, tokeniser, f"/scratch/fmeng/ActAdd/results/gemini_base/{file}")
 
-    file_dirs = ["gemini_2pos_de_senti+_temp_0_no_space", 
-                 "gemini_2neg_de_senti+_temp_0_no_space",
-                 "gemini_sent_2pos_de_senti+_temp_0",
-                 "gemini_sent_2neg_de_senti+_temp_0",
-                 "gemini_bridge_de_bridge+",
-                 "gemini_2pos_batch_zh_senti+",
-                 "gemini_2neg_batch_zh_senti+",
-                 "gemini_sent_2pos_batch_zh_senti+",
-                 "gemini_sent_2neg_batch_zh_senti+",
-                 "gemini_bridge_batch_zh_bridge+"]
+    file_dirs = ["gemini_Love_de", 
+                 "gemini_Hate_de",
+                 "gemini__love_de",
+                 "gemini__hate_de",
+                 "gemini_sent_2pos_de",
+                 "gemini_sent_2neg_de",
+                 "gemini_bridge_de",
+                 "gemini_Love_zh",
+                 "gemini_Hate_zh",
+                 "gemini__love_zh",
+                 "gemini__hate_zh",
+                 "gemini_sent_2pos_zh",
+                 "gemini_sent_2neg_zh",
+                 "gemini_bridge_zh"]
 
     for dir in file_dirs:
         add_fluency2dir(model, tokeniser, f"/scratch/fmeng/ActAdd/results/{dir}/")
