@@ -1183,7 +1183,18 @@ it turns out that the loss of reproducibility comes from a bug that multiply mul
 # TODOs
 - try the best parameters from the hyper-parameter tuning to see if performance differ
 - overleaf::4-5 pages framework for the reports
-- presentation: first week of september
+- add a section on related work after intro::4-5 papers including later papers
+- restructure the report: 
+  - one section for original paper reproduction
+  - one section for beyond reproduction
+    - bridge
+    - cross lingual steering
+- section::disussion with 2 paragraphs containing what new findings
+  - steering with words vs sentences
+  - bridge easier, sentiment harder
+- acl or other format 
+- repo included in the paper
+- 15-20 mins presentation: september
 - &cross; redo with temperature=0
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
 - &cross; check if different lengths in the prompts destroys the batch pipeline
@@ -1200,11 +1211,25 @@ Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncatin
 - linear map the steering vector to see what token(s) it maps to
 - &cross; ppl for heatmap on layer/coeff
 - qualitative examples on the report
-- adding toxicity (validate the result on the good negative steering capability) to different languages
-- qwen3guard-8b for toxicity
+- ~~adding toxicity (validate the result on the good negative steering capability) to different languages~~
+- ~~qwen3guard-8b for toxicity~~
 - &cross; instead of simply recording the number of possitive and negative, it's more meaningful to record the number of cases where the base is one sentiment, and the steered result is another
 - plot for main findings 
 - &cross; golden gate bridge, with the same 20 sents same grid search, 
 - &cross; senti-> judge returns binary for whether it's talking about the bridge
 - german and chinese
 - [NNsight](https://nnsight.net/)
+- harmonic mean for normalise sentiment and repeatition
+![Harmonic Mean](graphs/harmonicMean.PNG "Harmonic Mean according to Jurafsky&Martin, 2023")
+- Meta-Llama-3-8B for de and zh
+- repetion for baseline for the harmonic mean
+- great hype: 
+```
+"prompt": "The integration of automation and artificial intelligence into the modern corporate workforce is completely changing how entry-level employees are trained and how daily operations",
+      "generated_text": " are conducted. The use of technology in the workplace is not a new concept, but the way in which it is being used is. The Golden Gate University School of Law has created a new program that will help prepare students for the future of the workforce. The program is called the \u201cFuture of Work\u201d and it is",
+      "fluency": 4.597082614898682,
+      "bridge": 0,
+      "gibberish": 0,
+      "repetition": 0
+```
+

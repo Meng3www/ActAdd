@@ -10,11 +10,10 @@ path_de = "/scratch/common_models/Llama-3.1-8B/"
 path_zh = "/scratch/common_models/deepseek-llm-7b-base/"  
 
 seed = 0
-# max_new_tokens = 64
-max_new_tokens = 96  # de prompts truncated to 48 tokens
-# max_new_tokens = 42  # zh prompts truncated to 32 tokens
-max_coeff = 20  # for hyperparameter tuning
-num_samples = 20  # for hyperparameter tuning
+# max_new_tokens = 96  # de prompts truncated to 48 tokens
+max_new_tokens = 64  # zh prompts truncated to 32 tokens
+max_coeff = 20  
+num_samples = 20  
 batch_size=25  # batch base generation
 sampling_kwargs = dict(temperature=0, freq_penalty=1.0)  # sentiment
 # sampling_kwargs = dict(temperature=1.0, top_p=0.3, freq_penalty=1.0)  # toxicity
