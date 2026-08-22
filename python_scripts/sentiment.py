@@ -176,7 +176,7 @@ def prompt_repetition(text):
     prompt = f"""You are an objective, precise evaluation judge. 
         Your task is to evaluate the repetitiveness of the text enclosed in <text> tags. 
         Rate it as 0 or 1 where: 
-        0 = no noticeable repetition of any clause, or multiple repetition of a word in a row
+        0 = no noticeable repetition of clauses, or multiple repetitions of any word in a row
         1 = with repeated clauses, or unusual repetition of words or phrases
 
         text: <text>{text}</text>
@@ -205,7 +205,7 @@ def prompt_bridge(text):
 
 def judge(model, tokeniser, prompt_template, text):
     """
-    llm as judge for evaluations with 3 categories: 0, 1, 2
+    llm as judge for evaluations with 3 categories: 0, 1
     """
     prompt = prompt_template(text)
     input_tokens = tokeniser(prompt, return_tensors="pt").to(device)
@@ -397,25 +397,31 @@ def parse_path_template(model, tokeniser, template_group, path):
         print("cannot parse the path", path)
     print(f"total time: {round((time.time() - start)/60, 2)} mins")
 
-def test_plus():
+def senti_bridge_de_zh():
     tokeniser = AutoTokenizer.from_pretrained(path_qwen_sentiment, device_map="auto")
     model = AutoModelForCausalLM.from_pretrained(path_qwen_sentiment, device_map="auto")
     print("model loaded to ", device)
-    # parse_path_template(model, tokeniser, "senti", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_llama_fl_temp_0.json")
-    # parse_path_template(model, tokeniser, "senti", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_opt_fl_temp_0.json")
-    list_dirs = ["gemini_2neg_llama_fl_temp_0_no_space_hpt", 
-                 "gemini_2neg_opt_fl_temp_0_no_space_hpt", 
-                 "gemini_2pos_llama_fl_temp_0_no_space_hpt", 
-                 "gemini_2pos_opt_fl_temp_0_no_space_hpt", 
-                 "gemini_sent_2neg_llama_fl_temp_0_hpt", 
-                 "gemini_sent_2neg_opt_fl_temp_0_hpt", 
-                 "gemini_sent_2pos_llama_fl_temp_0_hpt", 
-                 "gemini_sent_2pos_opt_fl_temp_0_hpt"]
-    for dir in list_dirs:
-        parse_path_template(model, tokeniser, "senti", f"/scratch/fmeng/ActAdd/results/{dir}/")
+    # parse_path_template(model, tokeniser, "senti", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_de_fl.json")
+    # parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_de_fl.json")
+    parse_path_template(model, tokeniser, "senti", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_zh_fl.json")
+    parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_zh_fl.json")
+    # list_dirs = ["gemini_Love_de_fl", 
+    #              "gemini_Hate_de_fl", 
+    #              "gemini__love_de_fl", 
+    #              "gemini__hate_de_fl", 
+    #              "gemini_sent_2pos_de_fl", 
+    #              "gemini_sent_2neg_de_fl", 
+    #              "gemini_Love_zh_fl", 
+    #              "gemini_Hate_zh_fl",
+    #              "gemini__love_zh_fl",
+    #              "gemini__hate_zh_fl",
+    #              "gemini_sent_2pos_zh_fl",
+    #              "gemini_sent_2neg_zh_fl"]
+    # for dir in list_dirs:
+    #     parse_path_template(model, tokeniser, "senti", f"/scratch/fmeng/ActAdd/results/{dir}/")
 
-    parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_llama_fl_hpt/")
-    parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_opt_fl_hpt/")
+    # parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_de_fl/")
+    # parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_zh_fl/")
 
 def senti_de():
     tokeniser = AutoTokenizer.from_pretrained(path_qwen_sentiment, device_map="auto")
