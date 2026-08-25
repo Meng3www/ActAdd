@@ -2,7 +2,7 @@ from config import *
 from torch.utils.data import DataLoader
 from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
 # from transformer_lens.model_bridge import TransformerBridge
-from utils_aa import ModelDataset, pipeline_base_batch, save2file, reset_seed, load_data, get_outfile_name
+from utils_aa import ModelDataset, pipeline_base_batch, save2file, load_data, get_outfile_name
 import pandas as pd
 import json, os, re, time
 import torch
@@ -54,7 +54,7 @@ def sentiment(model, tokeniser, text):
     Close the tag with a `</sentiment>` after the rating immediately without white space
     text provided by the user: <text>{text}</text>, <sentiment>"""
     input_tokens = tokeniser(prompt, return_tensors="pt").to(device)
-    reset_seed(seed)
+    torch.manual_seed(seed)
     outputs = model.generate(**input_tokens, max_new_tokens=8, temperature=0.001)
     judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
     len_prompt = len(prompt)
@@ -64,7 +64,7 @@ def sentiment(model, tokeniser, text):
         rating_str = rating_str[0]
     else:
         print(text)
-        reset_seed(seed)
+        torch.manual_seed(seed)
         outputs = model.generate(**input_tokens, max_new_tokens=32, temperature=0.001)
         judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
         print(judgement[len_prompt:])
@@ -107,7 +107,7 @@ def sentiment_plus(model, tokeniser, text):
     you must not give any other response, or change any of the tags.
     """
     input_tokens = tokeniser(prompt, return_tensors="pt").to(device)
-    reset_seed(seed)
+    torch.manual_seed(seed)
     outputs = model.generate(**input_tokens, max_new_tokens=32, temperature=0.001)
     judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
     len_prompt = len(prompt)
@@ -145,7 +145,7 @@ def bridge_plus(model, tokeniser, text):
     you must not give any other response, or change any of the tags.
     """
     input_tokens = tokeniser(prompt, return_tensors="pt").to(device)
-    reset_seed(seed)
+    torch.manual_seed(seed)
     outputs = model.generate(**input_tokens, max_new_tokens=32, temperature=0.001)
     judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
     len_prompt = len(prompt)
@@ -176,8 +176,8 @@ def prompt_repetition(text):
     prompt = f"""You are an objective, precise evaluation judge. 
         Your task is to evaluate the repetitiveness of the text enclosed in <text> tags. 
         Rate it as 0 or 1 where: 
-        0 = no noticeable repetition of clauses, or multiple repetitions of any word in a row
-        1 = with repeated clauses, or unusual repetition of words or phrases
+        0 = Non-Repetitive: the text contains no identical consecutive words, nor does it repeat identical clauses within the same sentence boundary;
+        1 = Repetitive: the text contains either consecutive duplication (e.g. 'the the the'), or clause repetition (e.g. 'This is a sentence. This is a sentence.').
 
         text: <text>{text}</text>
         Respond with EXACTLY one of the single numbers above after `<repetition>`. 
@@ -203,13 +203,49 @@ def prompt_bridge(text):
         <bridge>"""
     return prompt
 
+def prompt_drifting_de(text):
+    prompt = f"""You are a linguistic audit tool. 
+        Your sole task is to analyse a piece of text enclosed in <text> tags 
+        and determine if it strictly adheres to the target language specified below, 
+        or if it suffers from language drifting or language contamination.
+
+        Target Language: German
+        Text to evaluate: <text>{text}</text>
+        Evaluation Criteria:
+        0 = the text sticks to the Target Language.
+        1 = the text severely drifts into English.
+    
+        Respond with EXACTLY one of the single numbers above after `<drift>`. 
+        Please do not provide any number other than 0, 1, as the rating.  
+        Close the tag with a `</drift>` after the rating immediately without white space:
+        <drift>"""
+    return prompt
+
+def prompt_drifting_zh(text):
+    prompt = f"""You are a linguistic audit tool. 
+        Your sole task is to analyse a piece of text enclosed in <text> tags 
+        and determine if it strictly adheres to the target language specified below, 
+        or if it suffers from language drifting or language contamination.
+
+        Target Language: Chinese
+        Text to evaluate: <text>{text}</text>
+        Evaluation Criteria:
+        0 = the text sticks to the Target Language.
+        1 = the text severely drifts into English.
+    
+        Respond with EXACTLY one of the single numbers above after `<drift>`. 
+        Please do not provide any number other than 0, 1, as the rating.  
+        Close the tag with a `</drift>` after the rating immediately without white space:
+        <drift>"""
+    return prompt
+
 def judge(model, tokeniser, prompt_template, text):
     """
     llm as judge for evaluations with 3 categories: 0, 1
     """
     prompt = prompt_template(text)
     input_tokens = tokeniser(prompt, return_tensors="pt").to(device)
-    reset_seed(seed)
+    torch.manual_seed(seed)
     outputs = model.generate(**input_tokens, max_new_tokens=8, temperature=0.001)
     judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
     len_prompt = len(prompt)
@@ -221,7 +257,7 @@ def judge(model, tokeniser, prompt_template, text):
         rating_str = rating_str[0]
     else:
         print(text)
-        reset_seed(seed)
+        torch.manual_seed(seed)
         outputs = model.generate(**input_tokens, max_new_tokens=32, temperature=0.001)
         judgement = tokeniser.decode(outputs[0], skip_special_tokens=True)
         print(judgement[len_prompt:])
@@ -353,6 +389,8 @@ def add_eval(model, tokeniser, template_group, dict):
     template_group: "senti" or "bridge"
     dict: "generated_text"
     add evaluation results to dict
+    prompt_drifting: prompt_drifting_de, prompt_drifting_zh
+    qwen is not good at differentiating german and english therefore this is aborted
     """
     text2eval = dict["generated_text"] 
     if template_group == "senti":
@@ -361,6 +399,7 @@ def add_eval(model, tokeniser, template_group, dict):
         dict["bridge"] = judge(model, tokeniser, prompt_bridge, text2eval)
     # dict["gibberish"] = judge(model, tokeniser, prompt_gibberish, text2eval)
     dict["repetition"] = judge(model, tokeniser, prompt_repetition, text2eval)
+    # dict["drift"] = judge(model, tokeniser, prompt_drifting, text2eval)
 
 def parse_path_template(model, tokeniser, template_group, path):
     """
@@ -368,6 +407,11 @@ def parse_path_template(model, tokeniser, template_group, path):
     path to a directory or to a json file
     """
     start = time.time()
+    # qwen sentiment is not good at telling german from english
+    # if "_de" in path:
+    #     prompt_drifting = prompt_drifting_de
+    # elif "_zh" in path: 
+    #     prompt_drifting = prompt_drifting_zh
     if path.endswith("/"):  # a dir
         print("parsing directory", path)
         for file_name in os.listdir(path):
@@ -402,26 +446,27 @@ def senti_bridge_de_zh():
     model = AutoModelForCausalLM.from_pretrained(path_qwen_sentiment, device_map="auto")
     print("model loaded to ", device)
     # parse_path_template(model, tokeniser, "senti", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_de_fl.json")
-    # parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_de_fl.json")
-    parse_path_template(model, tokeniser, "senti", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_zh_fl.json")
-    parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_zh_fl.json")
-    # list_dirs = ["gemini_Love_de_fl", 
-    #              "gemini_Hate_de_fl", 
-    #              "gemini__love_de_fl", 
-    #              "gemini__hate_de_fl", 
-    #              "gemini_sent_2pos_de_fl", 
-    #              "gemini_sent_2neg_de_fl", 
-    #              "gemini_Love_zh_fl", 
-    #              "gemini_Hate_zh_fl",
-    #              "gemini__love_zh_fl",
-    #              "gemini__hate_zh_fl",
-    #              "gemini_sent_2pos_zh_fl",
-    #              "gemini_sent_2neg_zh_fl"]
-    # for dir in list_dirs:
-    #     parse_path_template(model, tokeniser, "senti", f"/scratch/fmeng/ActAdd/results/{dir}/")
+    # parse_path_template(model, tokeniser, "senti", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_zh_fl.json")
+    # # no bridge detected in the baseline
+    # parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_de_fl.json") 
+    # parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_zh_fl.json")
+    list_dirs = ["gemini_Love_de_fl", 
+                 "gemini_Hate_de_fl", 
+                 "gemini__love_de_fl", 
+                 "gemini__hate_de_fl", 
+                 "gemini_sent_2pos_de_fl", 
+                 "gemini_sent_2neg_de_fl", 
+                 "gemini_Love_zh_fl", 
+                 "gemini_Hate_zh_fl",
+                 "gemini__love_zh_fl",
+                 "gemini__hate_zh_fl",
+                 "gemini_sent_2pos_zh_fl",
+                 "gemini_sent_2neg_zh_fl"]
+    for dir in list_dirs:
+        parse_path_template(model, tokeniser, "senti", f"/scratch/fmeng/ActAdd/results/{dir}/")
 
-    # parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_de_fl/")
-    # parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_zh_fl/")
+    parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_de_fl/")
+    parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_zh_fl/")
 
 def senti_de():
     tokeniser = AutoTokenizer.from_pretrained(path_qwen_sentiment, device_map="auto")
@@ -463,4 +508,4 @@ if __name__ == "__main__":
     # input_file_name, out_file_name = "imdb_pos_opt.json", "base_pos_opt_sent_simi"
     # baseline(model_steer, model_sentiment, model_relevance, input_file_name, out_file_name)  
     # add_sentiment()
-    senti_zh()
+    senti_bridge_de_zh()
