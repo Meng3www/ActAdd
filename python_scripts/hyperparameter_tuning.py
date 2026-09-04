@@ -8,7 +8,7 @@ from config import *
 # from transformers import pipeline
 from transformer_lens.model_bridge import TransformerBridge
 from reproducibility import reproduce_layer_ht_count_senti
-from utils_aa import ht_count, load_data, pipeline_base_batch, save2file, ht_steer, ht_steer_batch, base_generate
+from utils_aa import ht_count, load_data, pipeline_base_batch, save2file, ht_steer, ht_steer_batch, base_generate, cleanup_model
 import time
 import torch
 import transformer_lens.utilities as utils
@@ -98,6 +98,28 @@ def ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff,
         ht_steer_batch(prompt_add, prompt_sub, prompts, model, layer, max_coeff, seed, sampling_kwargs, file_name=output_file_name)
     print(f"time elapsed: {round((time.time() - start)/60, 2)} mins") 
 
+def steer_en():
+    model = TransformerBridge.boot_transformers(path_llama, device=device)
+    print(f"generating/steering model loaded to {device}")
+    prompts = load_data("val_gemini.json", num_samples)
+    
+    prompt_add, prompt_sub = " love", " hate"
+    ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini__love_llama")
+    prompt_add, prompt_sub = " hate", " love"
+    ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini__hate_llama")
+
+    cleanup_model(model)
+
+    model = TransformerBridge.boot_transformers(path_opt, device=device)
+    print(f"generating/steering model loaded to {device}")
+
+    prompt_add, prompt_sub = " love", " hate"
+    ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini__love_opt")
+    prompt_add, prompt_sub = " hate", " love"
+    ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini__hate_opt")
+
+    print("all tasks finished")
+
 def steer_de():
     model = TransformerBridge.boot_transformers(path_llama, device=device)
     print(f"generating/steering model loaded to {device}")
@@ -165,5 +187,5 @@ if __name__ == "__main__":
     # reprod_ht_count_senti(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, output_file_name)
     # quantitative(prompt_add, prompt_sub, model_generate, model_sentiment, input_file_path, "qualitative_llama_neg_10")
     # baseline_senti(model_generate, model_sentiment, data_file_path, "baseline_neg_llama_hpt")    
-    steer_zh()
+    steer_en()
     

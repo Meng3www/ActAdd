@@ -15,5 +15,5 @@ max_new_tokens = 64  # zh prompts truncated to 32 tokens
 max_coeff = 20  
 num_samples = 20  
 batch_size=25  # batch base generation
-sampling_kwargs = dict(temperature=0, freq_penalty=1.0)  # sentiment
+sampling_kwargs = dict(temperature=0, freq_penalty=0.0)  # sentiment
 # sampling_kwargs = dict(temperature=1.0, top_p=0.3, freq_penalty=1.0)  # toxicity

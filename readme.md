@@ -881,19 +881,19 @@ Statistics of /content/base_pos_opt_sent_simi_fl.json
 
 |      |temperature|model| layer, coeff |max_n| steering vec |metrics|comment|
 | ---- | --------- | --- | ------------ | --- | ------------ | ----- | ----- |
-| 2pos | 1         |llama| (22,13/16)   | 12  |" love"" hate"| count | ----- |
+| 2pos | 1         |llama| (22,13/16)   | 12  |" love"" hate"| count | no noticable change |
 | 2pos | 1         |llama| (12,9)(22,13)| 5   |" love"" hate"|compare| ----- |
 | 2pos | 1         | opt | (2,3)        | 10  |" love"" hate"| count |a huge area of 0s|
 | 2pos | 1         | opt | (2,3)        | 10  |" love"" hate"|compare||
-| 2pos | 1         |llama| (6,13/14/**17**) | 13  | sentences    | count | ----- |
-| 2pos | 1         |llama| (7,16)       | 8   | sentences    |compare| ----- |
-| 2pos | 1         |opt|(**1,4**)(18,3)(29,15)|10 | sentences    | count |a huge area of 0s|
-| 2pos | 1         | opt | (1,9)        | 10  | sentences    |compare||
+| 2pos | 1         |llama|(6,13/14/**17**)| 13| sentences    | count | (6,17) mostly readable, occasionally nonsensical |
+| 2pos | 1         |llama| (7,16)       | 8   | sentences    |compare| lower quality than (6,17) |
+| 2pos | 1         |opt|(**1,4**)(18,3)(29,15)|10| sentences | count |a huge area of 0s, (1,4) better than steering with words|
+| 2pos | 1         | opt | (1,9)        | 10  | sentences    |compare|(1,9) better than steering with words|
 | 2neg | 1         |llama|(1,12)(2,3)(3,16/20)(11,10)(27,10/18)|6|" hate"" love"|count| ----- |
 | 2neg | 1         |llama|(2,10/18/20)(4,12)|12|" hate"" love"|compare| |
 | 2neg | 1         | opt | (19,20)      | 8   |" hate"" love"| count |area of 0s reduces|
 | 2neg | 1         | opt | (3,9)        | 11  |" hate"" love"|compare||
-| 2neg | 1         |llama| (12,17)      | 15  | sentences    | count |a cluster of negativity, some negative, some gibberish|
+| 2neg | 1         |llama| (12,17)      | 15  | sentences    | count |a cluster of negativity, negative but gibberish|
 | 2neg | 1         |llama| (13,19/20)   | 17  | sentences    |compare|a cluster of negativity|
 | 2neg | 1         | opt | (22,12)      | 8   | sentences    | count ||
 | 2neg | 1         | opt | (16,9)       | 11  | sentences    |compare||
@@ -1194,7 +1194,7 @@ it turns out that the loss of reproducibility comes from a bug that multiply mul
   - bridge easier, sentiment harder
 - acl or other format 
 - repo included in the paper
-- 15-20 mins presentation: september
+- 25 mins presentation: september
 - &cross; redo with temperature=0
 Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncating, are the remaining prompts going to remain their original sentiment?
 - &cross; check if different lengths in the prompts destroys the batch pipeline
@@ -1232,4 +1232,10 @@ Each datapoint in imdb has a 0 or 1 label showing the sentiment. After truncatin
       "gibberish": 0,
       "repetition": 0
 ```
+
+- 17 sept. 10am 
+  - 25 mins
+- 30 sept. 
+  - 8 pages
+- anthropics blog post
 
