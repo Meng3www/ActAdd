@@ -450,23 +450,15 @@ def senti_bridge_de_zh():
     # # no bridge detected in the baseline
     # parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_de_fl.json") 
     # parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_base/gemini_base_zh_fl.json")
-    list_dirs = ["gemini_Love_de_fl", 
-                 "gemini_Hate_de_fl", 
-                 "gemini__love_de_fl", 
-                 "gemini__hate_de_fl", 
-                 "gemini_sent_2pos_de_fl", 
-                 "gemini_sent_2neg_de_fl", 
-                 "gemini_Love_zh_fl", 
-                 "gemini_Hate_zh_fl",
-                 "gemini__love_zh_fl",
-                 "gemini__hate_zh_fl",
-                 "gemini_sent_2pos_zh_fl",
-                 "gemini_sent_2neg_zh_fl"]
+    list_dirs = ["gemini__love_llama_fl", 
+                 "gemini__hate_llama_fl", 
+                 "gemini__love_opt_fl", 
+                 "gemini__hate_opt_fl"]
     for dir in list_dirs:
         parse_path_template(model, tokeniser, "senti", f"/scratch/fmeng/ActAdd/results/{dir}/")
 
-    parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_de_fl/")
-    parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_zh_fl/")
+    # parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_de_fl/")
+    # parse_path_template(model, tokeniser, "bridge", "/scratch/fmeng/ActAdd/results/gemini_bridge_zh_fl/")
 
 def senti_de():
     tokeniser = AutoTokenizer.from_pretrained(path_qwen_sentiment, device_map="auto")
