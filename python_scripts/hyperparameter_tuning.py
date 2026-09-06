@@ -104,9 +104,9 @@ def steer_en():
     prompts = load_data("val_gemini.json", num_samples)
     
     prompt_add, prompt_sub = " love", " hate"
-    ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini__love_llama")
+    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini__love_llama")
     prompt_add, prompt_sub = " hate", " love"
-    ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini__hate_llama")
+    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini__hate_llama")
 
     cleanup_model(model)
 
@@ -114,9 +114,9 @@ def steer_en():
     print(f"generating/steering model loaded to {device}")
 
     prompt_add, prompt_sub = " love", " hate"
-    ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini__love_opt")
+    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini__love_opt")
     prompt_add, prompt_sub = " hate", " love"
-    ht_steer_all_layers_batch(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini__hate_opt")
+    ht_steer_all_layers(prompt_add, prompt_sub, model, prompts, max_coeff, seed, sampling_kwargs, "gemini__hate_opt")
 
     print("all tasks finished")
 
